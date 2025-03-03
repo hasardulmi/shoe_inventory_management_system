@@ -7,6 +7,7 @@ public class EmployeeDto {
     private String firstName;
     private String lastName;
     private String email;
+    private String salary;
     private String phoneNumber;
     private LocalDate hireDate;
     private String jobTitle;
@@ -52,6 +53,15 @@ public class EmployeeDto {
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
     }
+
+    public String getSalary() {
+        return salary;
+    }
+
+    public void setSalary(String salary) {
+        this.salary = salary;
+    }
+
 
     public LocalDate getHireDate() {
         return hireDate;

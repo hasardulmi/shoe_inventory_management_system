@@ -1,15 +1,11 @@
 package net.javaguides.ims_backend.entity;
 
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-
+import jakarta.persistence.*;
 import java.time.LocalDate;
 
 @Entity
 public class Employee {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,7 +16,8 @@ public class Employee {
     private String phoneNumber;
     private LocalDate hireDate;
     private String jobTitle;
-    private String address; // Ensure this field exists
+    private String address;
+    private Double salary;
 
     // Getters and Setters
     public Long getId() {
@@ -85,5 +82,13 @@ public class Employee {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public Double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(Double salary) {
+        this.salary = salary;
     }
 }

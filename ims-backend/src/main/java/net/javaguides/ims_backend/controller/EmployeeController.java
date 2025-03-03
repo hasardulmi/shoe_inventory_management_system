@@ -1,9 +1,8 @@
 package net.javaguides.ims_backend.controller;
 
-import net.javaguides.ims_backend.dto.EmployeeDto;
+import net.javaguides.ims_backend.entity.Employee;
 import net.javaguides.ims_backend.service.EmployeeService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,30 +13,36 @@ import java.util.List;
 public class EmployeeController {
 
     @Autowired
-    private EmployeeService EmployeeService;
+    private EmployeeService employeeService;
 
+    // Get all employees
     @GetMapping
-    public List<EmployeeDto> getAllEmployees() {
-        return EmployeeService.getAllEmployees();
+    public List<Employee> getAllEmployees() {
+        return employeeService.getAllEmployees();
     }
 
+    // Get employee by ID
     @GetMapping("/{id}")
-    public EmployeeDto getEmployeeById(@PathVariable Long id) {
-        return EmployeeService.getEmployeeById(id);
+    public Employee getEmployeeById(@PathVariable Long id) {
+        return employeeService.getEmployeeById(id).orElse(null);
     }
 
+    // Add a new employee
     @PostMapping
-    public EmployeeDto createEmployee(@RequestBody EmployeeDto employeeDTO) {
-        return EmployeeService.createEmployee(employeeDTO);
+    public Employee addEmployee(@RequestBody Employee employee) {
+        return employeeService.saveEmployee(employee);
     }
 
+    // Update an existing employee
     @PutMapping("/{id}")
-    public EmployeeDto updateEmployee(@PathVariable Long id, @RequestBody EmployeeDto employeeDTO) {
-        return EmployeeService.updateEmployee(id, employeeDTO);
+    public Employee updateEmployee(@PathVariable Long id, @RequestBody Employee employee) {
+        employee.setId(id); // Ensure the ID is set
+        return employeeService.saveEmployee(employee);
     }
 
+    // Delete an employee
     @DeleteMapping("/{id}")
     public void deleteEmployee(@PathVariable Long id) {
-        EmployeeService.deleteEmployee(id);
+        employeeService.deleteEmployee(id);
     }
 }

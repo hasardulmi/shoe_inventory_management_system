@@ -31,6 +31,7 @@ const EmployeeManagement = () => {
         hireDate: '',
         jobTitle: '',
         address: '',
+        salary: '',
     });
     const [errors, setErrors] = useState({});
 
@@ -73,6 +74,7 @@ const EmployeeManagement = () => {
         if (!formData.hireDate) newErrors.hireDate = 'Hire date is required';
         if (!formData.jobTitle) newErrors.jobTitle = 'Job title is required';
         if (!formData.address) newErrors.address = 'Address is required';
+        if (!formData.salary) newErrors.salary = 'Salary is required';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -98,6 +100,7 @@ const EmployeeManagement = () => {
                 hireDate: '',
                 jobTitle: '',
                 address: '',
+                salary: '',
             });
             setAddDialogOpen(false); // Close the dialog
         } catch (error) {
@@ -116,6 +119,7 @@ const EmployeeManagement = () => {
             hireDate: employee.hireDate,
             jobTitle: employee.jobTitle,
             address: employee.address,
+            salary: employee.salary,
         });
         setAddDialogOpen(true); // Open the dialog
     };
@@ -157,6 +161,7 @@ const EmployeeManagement = () => {
                                     <TableCell>Phone Number</TableCell>
                                     <TableCell>Hire Date</TableCell>
                                     <TableCell>Job Title</TableCell>
+                                    <TableCell>Salary</TableCell>
                                     <TableCell>Address</TableCell>
                                     <TableCell>Actions</TableCell>
                                 </TableRow>
@@ -169,6 +174,7 @@ const EmployeeManagement = () => {
                                         <TableCell>{employee.phoneNumber}</TableCell>
                                         <TableCell>{employee.hireDate}</TableCell>
                                         <TableCell>{employee.jobTitle}</TableCell>
+                                        <TableCell>Rs.{employee.salary}</TableCell>
                                         <TableCell>{employee.address}</TableCell>
                                         <TableCell>
                                             <Button onClick={() => handleEdit(employee)}>Edit</Button>
@@ -241,6 +247,16 @@ const EmployeeManagement = () => {
                                     onChange={handleChange}
                                     error={!!errors.jobTitle}
                                     helperText={errors.jobTitle}
+                                    required
+                                />
+                                <TextField
+                                    name="salary"
+                                    label="Salary"
+                                    type="number"
+                                    value={formData.salary}
+                                    onChange={handleChange}
+                                    error={!!errors.salary}
+                                    helperText={errors.salary}
                                     required
                                 />
                                 <TextField
