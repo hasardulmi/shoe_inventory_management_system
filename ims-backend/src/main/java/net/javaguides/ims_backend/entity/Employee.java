@@ -2,6 +2,8 @@ package net.javaguides.ims_backend.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Employee {
@@ -18,6 +20,10 @@ public class Employee {
     private String jobTitle;
     private String address;
     private Double salary;
+
+    @ElementCollection
+    @CollectionTable(name = "payment_history", joinColumns = @JoinColumn(name = "employee_id"))
+    private List<Payment> paymentHistory = new ArrayList<>();
 
     // Getters and Setters
     public Long getId() {
@@ -90,5 +96,13 @@ public class Employee {
 
     public void setSalary(Double salary) {
         this.salary = salary;
+    }
+
+    public List<Payment> getPaymentHistory() {
+        return paymentHistory;
+    }
+
+    public void setPaymentHistory(List<Payment> paymentHistory) {
+        this.paymentHistory = paymentHistory;
     }
 }
