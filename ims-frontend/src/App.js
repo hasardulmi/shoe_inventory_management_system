@@ -1,44 +1,35 @@
+// src/App.js
 import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import OwnerDashboard from './pages/OwnerDashboard';
-import InventoryManagement from './pages/InventoryManagement';
-import Profile from './pages/Profile';
-import SalesReport from './pages/SalesReport';
-import SupplierManagement from './pages/SupplierManagement';
-import ViewReport from './pages/ViewReport';
-import EmployeeManagement from './pages/EmployeeManagement';
-import EmployeeDashboard from './pages/EmployeeDashboard';
+import EmployeeRegistration from './pages/EmployeeRegistration';
+import SupplierManagement  from './pages/SupplierManagement';
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+import InventoryManagement from "./pages/InventoryManagement";
 import EmployeeProfile from './pages/EmployeeProfile';
-import EmployeeSalesReport from './pages/EmployeeSalesReport';
-import Payment from './pages/PaymentManagement'; // Add this import
+import OwnerProfile from './pages/OwnerProfile';
 
 
 
-const App = () => {
-  return (
-      <Router>
-        <Routes>
-          <Route path="/" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/owner-dashboard" element={<OwnerDashboard />} />
-          <Route path="/inventoryManagement" element={<InventoryManagement />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/payment" element={<Payment />} />
-          <Route path="/report" element={<SalesReport />} />
-          <Route path="/view" element={<ViewReport />} />
-          <Route path="/employeeManagement" element={<EmployeeManagement />} />
-          <Route path="/supplierManagement" element={<SupplierManagement />} />
-          <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
-          <Route path="/EmployeeProfile" element={<EmployeeProfile />} />
-          <Route path="/EmployeeSalesReport" element={<EmployeeSalesReport />} />
+function App() {
+    return (
+        <Router>
+            <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/owner-dashboard" element={<OwnerDashboard />} />
+                <Route path="/employeeRegistration" element={<EmployeeRegistration />} />
+                <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
+                <Route path="/supplierManagement" element={<SupplierManagement />} />
+                <Route path="/inventoryManagement" element={<InventoryManagement />} />
+                <Route path="/employeeProfile" element={<EmployeeProfile />} />
+                <Route path="/profile" element={<OwnerProfile />} />
 
 
-        </Routes>
-      </Router>
-  );
-};
+                {/* Add more routes as needed */}
+            </Routes>
+        </Router>
+    );
+}
 
 export default App;

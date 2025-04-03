@@ -26,7 +26,7 @@ const OwnerNavbar = () => {
                 <Button color="inherit" component={Link} to="/inventoryManagement">
                     Inventory
                 </Button>
-                <Button color="inherit" component={Link} to="/employeeManagement">
+                <Button color="inherit" component={Link} to="/employeeRegistration">
                     Employees
                 </Button>
                 <Button color="inherit" component={Link} to="/supplierManagement">

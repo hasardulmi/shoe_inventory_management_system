@@ -19,6 +19,7 @@ import {
     useTheme, // Import useTheme hook
 } from '@mui/material';
 import OwnerNavbar from '../components/OwnerNavbar';
+import './styles.css';
 
 const SupplierManagement = () => {
     const theme = useTheme(); // Access the Material-UI theme

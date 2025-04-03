@@ -1,21 +1,21 @@
+// src/components/OwnerDashboard.js
 import React from 'react';
-import { Typography, Box } from '@mui/material';
+import { Container, Typography, Box } from '@mui/material';
 import OwnerNavbar from '../components/OwnerNavbar';
+import './styles.css';
 
-const  OwnerDashboard = () => {
+function OwnerDashboard() {
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4 }}>
-                <Typography variant="h4" component="h1">
-                    Owner Dashboard
-                </Typography>
-                <Typography variant="body1">
-                    This is the Owner Dashboard page.
-                </Typography>
-            </Box>
+            <Container className="dashboard-container">
+                <Box className="dashboard-box">
+                    <Typography variant="h4" gutterBottom align="center">Owner Dashboard</Typography>
+                    <Typography variant="h6" gutterBottom>Welcome, Owner!</Typography>
+                </Box>
+            </Container>
         </>
     );
-};
+}
 
 export default OwnerDashboard;

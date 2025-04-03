@@ -1,39 +1,26 @@
+// src/main/java/net/javaguides/ims_backend/entity/User.java
 package net.javaguides.ims_backend.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.Data;
 
-import static net.javaguides.ims_backend.entity.UserType.EMPLOYEE;
-import static net.javaguides.ims_backend.entity.UserType.OWNER;
-
-
-@Data
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = @UniqueConstraint(columnNames = "email"))
+@Data
 public class User {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
-    private String password;
     private String email;
-    private String phone;
-    private String address;
+    private String password;
+    private String role; // "OWNER" or "EMPLOYEE"
+
     private String firstName;
     private String lastName;
-
-
-    @Enumerated(EnumType.STRING)
-    private UserType userType;
-
-    public UserType getUserType() {
-        return userType;
-    }
-
-    public void setUserType(UserType userType) {
-        this.userType = userType;
-    }
+    private String address;
+    private String phoneNumber;
+    private String jobTitle;
+    private Double salary;
+    private String hireDate;
 }
-

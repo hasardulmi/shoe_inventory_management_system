@@ -1,60 +1,51 @@
+// src/main/java/net/javaguides/ims_backend/controller/UserController.java
 package net.javaguides.ims_backend.controller;
 
-import net.javaguides.ims_backend.dto.LoginDto;
-import net.javaguides.ims_backend.dto.UserRegistrationDto;
 import net.javaguides.ims_backend.entity.User;
 import net.javaguides.ims_backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-@CrossOrigin(origins = "*")
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
+@CrossOrigin(origins = "*")
 public class UserController {
-
     @Autowired
     private UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginDto loginDto) {
-        // Authenticate the user
-        User user = userService.authenticate(loginDto.getUsername(), loginDto.getPassword());
-
-        if (user != null) {
-            // Return a JSON object with userType and other details
-            Map<String, String> response = new HashMap<>();
-            response.put("message", "Login successful");
-            response.put("userType", user.getUserType().toString()); // Convert UserType enum to String
-            response.put("username", user.getUsername()); // Optional: Include additional user details
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.status(401).body("Invalid credentials");
-        }
+    public ResponseEntity<User> login(@RequestBody User user) {
+        User loggedInUser = userService.login(user.getEmail(), user.getPassword());
+        return ResponseEntity.ok(loggedInUser);
     }
 
-
-    @PostMapping("/register")
-    public String registerUser(@RequestBody UserRegistrationDto registrationDto) {
-        return userService.registerUser(registrationDto);
+    @PostMapping("/register-employee")
+    public ResponseEntity<User> registerEmployee(@RequestBody User user) {
+        user.setRole("EMPLOYEE");
+        User savedUser = userService.saveUser(user);
+        return ResponseEntity.ok(savedUser);
     }
 
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    @GetMapping("/employees")
+    public ResponseEntity<List<User>> getAllEmployees() {
+        return ResponseEntity.ok(userService.getAllEmployees());
     }
 
-    @PutMapping("/{id}")
-    public String updateUser(@PathVariable Long id, @RequestBody UserRegistrationDto registrationDto) {
-        return userService.updateUser(id, registrationDto);
+    @PutMapping("/employees/{id}")
+    @PreAuthorize("hasRole('OWNER')")
+    public ResponseEntity<User> updateEmployee(@PathVariable Long id, @RequestBody User user) {
+        user.setId(id);
+        User updatedUser = userService.saveUser(user);
+        return ResponseEntity.ok(updatedUser);
     }
 
-    @DeleteMapping("/{id}")
-    public String deleteUser(@PathVariable Long id) {
-        return userService.deleteUser(id);
+    @DeleteMapping("/employees/{id}")
+    public ResponseEntity<Void> deleteEmployee(@PathVariable Long id) {
+        userService.deleteEmployee(id);
+        return ResponseEntity.ok().build();
     }
 }
