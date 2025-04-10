@@ -1,51 +1,37 @@
+// src/main/java/net/javaguides/ims_backend/controller/SupplierController.java
 package net.javaguides.ims_backend.controller;
 
-import net.javaguides.ims_backend.dto.SupplierDto;
-import net.javaguides.ims_backend.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import net.javaguides.ims_backend.entity.Supplier;
+import net.javaguides.ims_backend.service.SupplierService;
 
 import java.util.List;
 
-
 @RestController
-@CrossOrigin(origins = "*")
 @RequestMapping("/api/supplier")
+@CrossOrigin(origins = "*")
 public class SupplierController {
 
     @Autowired
     private SupplierService supplierService;
 
-    // Get all suppliers
     @GetMapping
-    public ResponseEntity<List<SupplierDto>> getAllSuppliers() {
-        List<SupplierDto> suppliers = supplierService.getAllSuppliers();
-        return ResponseEntity.ok(suppliers);
+    public List<Supplier> getAllSuppliers() {
+        return supplierService.getAllSuppliers();
     }
 
-    // Get a supplier by ID
-    @GetMapping("/{id}")
-    public ResponseEntity<SupplierDto> getSupplierById(@PathVariable Long id) {
-        SupplierDto supplier = supplierService.getSupplierById(id);
-        return supplier != null ? ResponseEntity.ok(supplier) : ResponseEntity.notFound().build();
-    }
-
-    // Add a new supplier
     @PostMapping
-    public ResponseEntity<SupplierDto> addSupplier(@RequestBody SupplierDto supplierDto) {
-        SupplierDto savedSupplier = supplierService.saveSupplier(supplierDto);
-        return ResponseEntity.ok(savedSupplier);
+    public Supplier createSupplier(@RequestBody Supplier supplier) {
+        return supplierService.createSupplier(supplier);
     }
 
-    // Update an existing supplier
     @PutMapping("/{id}")
-    public ResponseEntity<SupplierDto> updateSupplier(@PathVariable Long id, @RequestBody SupplierDto supplierDto) {
-        SupplierDto updatedSupplier = supplierService.updateSupplier(id, supplierDto);
-        return updatedSupplier != null ? ResponseEntity.ok(updatedSupplier) : ResponseEntity.notFound().build();
+    public Supplier updateSupplier(@PathVariable Long id, @RequestBody Supplier supplier) {
+        return supplierService.updateSupplier(id, supplier);
     }
 
-    // Delete a supplier
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSupplier(@PathVariable Long id) {
         supplierService.deleteSupplier(id);
