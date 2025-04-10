@@ -19,7 +19,7 @@ function Login() {
                 password
             });
             const user = response.data;
-            if (user.role === 'OWNER') {
+            if (user.jobTitle === 'Owner') {
                 navigate('/owner-dashboard');
             } else {
                 navigate('/employee/dashboard');

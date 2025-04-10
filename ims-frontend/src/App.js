@@ -6,9 +6,11 @@ import OwnerDashboard from './pages/OwnerDashboard';
 import EmployeeRegistration from './pages/EmployeeRegistration';
 import SupplierManagement  from './pages/SupplierManagement';
 import EmployeeDashboard from "./pages/EmployeeDashboard";
-import InventoryManagement from "./pages/InventoryManagement";
+import ProductManagement from "./pages/ProductManagement";
 import EmployeeProfile from './pages/EmployeeProfile';
 import OwnerProfile from './pages/OwnerProfile';
+import Sales from "./pages/Sales";
+import EmployeeSalesReport from './pages/EmployeeSalesReport';
 
 
 
@@ -21,9 +23,11 @@ function App() {
                 <Route path="/employeeRegistration" element={<EmployeeRegistration />} />
                 <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
                 <Route path="/supplierManagement" element={<SupplierManagement />} />
-                <Route path="/inventoryManagement" element={<InventoryManagement />} />
+                <Route path="/product-management" element={<ProductManagement />} />
                 <Route path="/employeeProfile" element={<EmployeeProfile />} />
                 <Route path="/profile" element={<OwnerProfile />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/employee-sales-report" element={<EmployeeSalesReport />} />
 
 
                 {/* Add more routes as needed */}
