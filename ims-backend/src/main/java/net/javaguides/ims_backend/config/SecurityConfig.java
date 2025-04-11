@@ -36,7 +36,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/login", "/api/register-employee").permitAll()
-                        .requestMatchers("/api/supplier/**", "/api/products/**", "/api/sales/**", "/api/returns/**").permitAll()
+                        .requestMatchers("/api/products/**", "/api/sales/**", "/api/returns/**").permitAll() // Removed /api/supplier/**
                         .requestMatchers("/api/employees/**").hasAnyRole("OWNER", "EMPLOYEE")
                         .anyRequest().authenticated()
                 )
