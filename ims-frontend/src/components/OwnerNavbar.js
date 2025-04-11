@@ -35,6 +35,9 @@ const OwnerNavbar = () => {
                 <Button color="inherit" component={Link} to="/sales">
                     Sales
                 </Button>
+                <Button color="inherit" component={Link} to="/return">
+                    Return
+                </Button>
                 <Button color="inherit" component={Link} to="/payment">
                     Payment
                 </Button>
