@@ -25,6 +25,9 @@ public class Product {
     @Column(name = "purchase_price", nullable = false)
     private Double purchasePrice;
 
+    @Column(name = "selling_price", nullable = false)
+    private Double sellingPrice;
+
     @Column(name = "category", nullable = false)
     private String category;
 
@@ -33,7 +36,4 @@ public class Product {
 
     @Column(name = "category_details")
     private String categoryDetails;
-
-    // Default constructor required by JPA
-    public Product() {}
 }

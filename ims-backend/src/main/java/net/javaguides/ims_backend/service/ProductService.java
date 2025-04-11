@@ -20,10 +20,9 @@ public class ProductService {
     }
 
     public Product createProduct(Product product) {
-        // Generate productId: 3-digit number + 3-char category abbreviation
         String categoryAbbr = getCategoryAbbreviation(product.getCategory());
         long categoryCount = productRepository.countByCategory(product.getCategory()) + 1;
-        String uniqueNum = String.format("%03d", Math.min(categoryCount, 999)); // Cap at 999
+        String uniqueNum = String.format("%03d", Math.min(categoryCount, 999));
         product.setProductId(uniqueNum + categoryAbbr);
         return productRepository.save(product);
     }
@@ -35,10 +34,10 @@ public class ProductService {
             product.setProductName(productDetails.getProductName());
             product.setPurchaseDate(productDetails.getPurchaseDate());
             product.setPurchasePrice(productDetails.getPurchasePrice());
+            product.setSellingPrice(productDetails.getSellingPrice());
             product.setCategory(productDetails.getCategory());
             product.setInStock(productDetails.getInStock());
             product.setCategoryDetails(productDetails.getCategoryDetails());
-            // productId is not updated (immutable)
             return Optional.of(productRepository.save(product));
         }
         return Optional.empty();
@@ -62,7 +61,7 @@ public class ProductService {
             case "shoe polish": return "POL";
             case "socks": return "SOC";
             case "other accessories": return "ACC";
-            default: return "UNK"; // Unknown category fallback
+            default: return "UNK";
         }
     }
 }

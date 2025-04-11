@@ -12,15 +12,21 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "http://localhost:3000")
 public class ProductController {
 
     @Autowired
     private ProductService productService;
 
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productService.getAllProducts();
+    public ResponseEntity<List<Product>> getAllProducts() {
+        try {
+            List<Product> products = productService.getAllProducts();
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @PostMapping
@@ -29,15 +35,15 @@ public class ProductController {
             Product savedProduct = productService.createProduct(product);
             return ResponseEntity.ok(savedProduct);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            e.printStackTrace();
+            return ResponseEntity.status(400).body(null);
         }
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
         Optional<Product> updatedProduct = productService.updateProduct(id, productDetails);
-        return updatedProduct.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        return updatedProduct.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
