@@ -13,6 +13,7 @@ const EmployeeNavbar = () => {
                 <Button color="inherit" component={Link} to="/employee-sales-report">
                     Sales Report
                 </Button>
+
                 {/* Add other navigation items as needed */}
                 <Button color="inherit" component={Link} to="/">
                     Logout
