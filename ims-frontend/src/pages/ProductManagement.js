@@ -10,15 +10,12 @@ import './styles.css';
 const ProductManagement = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
-    const [suppliers, setSuppliers] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [currentProduct, setCurrentProduct] = useState({
         id: null,
-        productId: '',
         productName: '',
         purchaseDate: '',
         purchasePrice: '',
-        supplierName: '',
         category: '',
         inStock: true,
         categoryDetails: {}
@@ -26,30 +23,49 @@ const ProductManagement = () => {
     const [isEditMode, setIsEditMode] = useState(false);
     const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterCategory, setFilterCategory] = useState('');
 
     useEffect(() => {
         fetchProducts();
-        fetchSuppliers();
     }, []);
 
     const fetchProducts = async () => {
         try {
             const response = await axios.get('http://localhost:8080/api/products');
-            setProducts(response.data);
-            setFilteredProducts(response.data);
+            const parsedProducts = response.data.map(product => ({
+                ...product,
+                categoryDetails: product.categoryDetails ? JSON.parse(product.categoryDetails) : {}
+            }));
+            setProducts(parsedProducts);
+            setFilteredProducts(parsedProducts);
         } catch (error) {
             console.error('Error fetching products:', error);
         }
     };
 
-    const fetchSuppliers = async () => {
-        try {
-            const response = await axios.get('http://localhost:8080/api/supplier');
-            setSuppliers(response.data);
-        } catch (error) {
-            console.error('Error fetching suppliers:', error);
+    useEffect(() => {
+        let filtered = products;
+
+        if (filterCategory) {
+            filtered = filtered.filter(item => item.category.toLowerCase() === filterCategory.toLowerCase());
         }
-    };
+
+        if (searchTerm) {
+            filtered = filtered.filter(item => {
+                const categoryWithDetails = formatCategoryDetails(item.category, item.categoryDetails).toLowerCase();
+                const stockStatus = item.inStock ? 'in stock' : 'out of stock';
+                return (
+                    item.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    categoryWithDetails.includes(searchTerm.toLowerCase()) ||
+                    item.purchasePrice.toString().includes(searchTerm.toLowerCase()) ||
+                    stockStatus.includes(searchTerm.toLowerCase())
+                );
+            });
+        }
+
+        setFilteredProducts(filtered);
+    }, [products, searchTerm, filterCategory]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -70,7 +86,6 @@ const ProductManagement = () => {
         if (!currentProduct.productName.trim()) newErrors.productName = 'Product Name is required';
         if (!currentProduct.purchaseDate) newErrors.purchaseDate = 'Purchase Date is required';
         if (!currentProduct.purchasePrice || isNaN(currentProduct.purchasePrice) || currentProduct.purchasePrice <= 0) newErrors.purchasePrice = 'Purchase Price must be a positive number';
-        if (!currentProduct.supplierName) newErrors.supplierName = 'Supplier Name is required';
         if (!currentProduct.category) newErrors.category = 'Category is required';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -79,18 +94,21 @@ const ProductManagement = () => {
     const handleOpenDialog = (product = null) => {
         if (product) {
             setCurrentProduct({
-                ...product,
-                categoryDetails: product.categoryDetails ? JSON.parse(product.categoryDetails) : {}
+                id: product.id,
+                productName: product.productName,
+                purchaseDate: product.purchaseDate,
+                purchasePrice: product.purchasePrice,
+                category: product.category,
+                inStock: product.inStock,
+                categoryDetails: product.categoryDetails || {}
             });
             setIsEditMode(true);
         } else {
             setCurrentProduct({
                 id: null,
-                productId: '',
                 productName: '',
                 purchaseDate: '',
                 purchasePrice: '',
-                supplierName: '',
                 category: '',
                 inStock: true,
                 categoryDetails: {}
@@ -117,7 +135,6 @@ const ProductManagement = () => {
                 productName: currentProduct.productName,
                 purchaseDate: currentProduct.purchaseDate,
                 purchasePrice: parseFloat(currentProduct.purchasePrice),
-                supplierName: currentProduct.supplierName,
                 category: currentProduct.category,
                 inStock: currentProduct.inStock,
                 categoryDetails: JSON.stringify(currentProduct.categoryDetails || {})
@@ -153,18 +170,26 @@ const ProductManagement = () => {
     };
 
     const handleSearch = (e) => {
-        const term = e.target.value.toLowerCase();
-        setSearchTerm(term);
-        const filtered = products.filter(item =>
-            item.productId.toLowerCase().includes(term) ||
-            item.productName.toLowerCase().includes(term)
-        );
-        setFilteredProducts(filtered);
+        setSearchTerm(e.target.value);
+    };
+
+    const handleCategoryFilterChange = (e) => {
+        setFilterCategory(e.target.value);
     };
 
     const categoryOptions = [
         'shoes', 'water bottle', 'bags', 'slippers', 'shoe polish', 'socks', 'other accessories'
     ];
+
+    const formatCategoryDetails = (category, details) => {
+        if (!details || Object.keys(details).length === 0) return category;
+
+        const detailStrings = Object.entries(details)
+            .filter(([_, value]) => value)
+            .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`);
+
+        return `${category} (${detailStrings.join(', ')})`;
+    };
 
     return (
         <>
@@ -174,14 +199,30 @@ const ProductManagement = () => {
                     Product Management
                 </Typography>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, gap: 2 }}>
                     <TextField
                         label="Search Products"
                         variant="outlined"
                         value={searchTerm}
                         onChange={handleSearch}
                         sx={{ width: '300px' }}
+                        placeholder="Search by ID, name, category, price, or stock"
                     />
+                    <FormControl sx={{ width: '200px' }}>
+                        <InputLabel>Filter Category</InputLabel>
+                        <Select
+                            value={filterCategory}
+                            onChange={handleCategoryFilterChange}
+                            label="Filter Category"
+                        >
+                            <MenuItem value="">All Categories</MenuItem>
+                            {categoryOptions.map((cat) => (
+                                <MenuItem key={cat} value={cat}>
+                                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                     <Button
                         variant="contained"
                         color="primary"
@@ -200,7 +241,6 @@ const ProductManagement = () => {
                                 <TableCell>Name</TableCell>
                                 <TableCell>Purchase Date</TableCell>
                                 <TableCell>Purchase Price</TableCell>
-                                <TableCell>Supplier</TableCell>
                                 <TableCell>Category</TableCell>
                                 <TableCell>Stock Status</TableCell>
                                 <TableCell>Actions</TableCell>
@@ -213,8 +253,7 @@ const ProductManagement = () => {
                                     <TableCell>{item.productName}</TableCell>
                                     <TableCell>{item.purchaseDate}</TableCell>
                                     <TableCell>{item.purchasePrice}</TableCell>
-                                    <TableCell>{item.supplierName}</TableCell>
-                                    <TableCell>{item.category}</TableCell>
+                                    <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
                                     <TableCell>{item.inStock ? 'In Stock' : 'Out of Stock'}</TableCell>
                                     <TableCell>
                                         <Button
@@ -281,23 +320,6 @@ const ProductManagement = () => {
                             type="number"
                         />
                         <FormControl fullWidth margin="normal">
-                            <InputLabel>Supplier Name</InputLabel>
-                            <Select
-                                name="supplierName"
-                                value={currentProduct.supplierName}
-                                onChange={handleInputChange}
-                                error={!!errors.supplierName}
-                                required
-                            >
-                                {suppliers.map((supplier) => (
-                                    <MenuItem key={supplier.id} value={supplier.supplierBrandName}>
-                                        {supplier.supplierBrandName}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                            {errors.supplierName && <Typography color="error">{errors.supplierName}</Typography>}
-                        </FormControl>
-                        <FormControl fullWidth margin="normal">
                             <InputLabel>Category</InputLabel>
                             <Select
                                 name="category"
@@ -353,6 +375,30 @@ const ProductManagement = () => {
                                     >
                                         <MenuItem value="with">With Laces</MenuItem>
                                         <MenuItem value="without">Without Laces</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={currentProduct.categoryDetails.type || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="school">School</MenuItem>
+                                        <MenuItem value="deck shoes">Deck Shoes</MenuItem>
+                                        <MenuItem value="baby">Baby</MenuItem>
+                                        <MenuItem value="office">Office</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Gender</InputLabel>
+                                    <Select
+                                        name="gender"
+                                        value={currentProduct.categoryDetails.gender || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="Men">Men</MenuItem>
+                                        <MenuItem value="Women">Women</MenuItem>
                                     </Select>
                                 </FormControl>
                             </>
@@ -444,6 +490,17 @@ const ProductManagement = () => {
                                     value={currentProduct.categoryDetails.color || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Gender</InputLabel>
+                                    <Select
+                                        name="gender"
+                                        value={currentProduct.categoryDetails.gender || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="mens">Mens</MenuItem>
+                                        <MenuItem value="ladies">Ladies</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </>
                         )}
                         {currentProduct.category === 'shoe polish' && (
