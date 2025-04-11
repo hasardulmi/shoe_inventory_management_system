@@ -9,6 +9,7 @@ import './styles.css';
 
 const Sales = () => {
     const [sales, setSales] = useState([]);
+    const [filteredSales, setFilteredSales] = useState([]); // New state for filtered sales
     const [openDialog, setOpenDialog] = useState(false);
     const [saleDetails, setSaleDetails] = useState({
         productId: '',
@@ -20,6 +21,7 @@ const Sales = () => {
         finalSoldPrice: 0
     });
     const [errors, setErrors] = useState({});
+    const [searchTerm, setSearchTerm] = useState(''); // New state for search input
 
     useEffect(() => {
         fetchSales();
@@ -29,6 +31,7 @@ const Sales = () => {
         try {
             const response = await axios.get('http://localhost:8080/api/sales');
             setSales(response.data);
+            setFilteredSales(response.data); // Initialize filteredSales with all sales
         } catch (error) {
             console.error('Error fetching sales:', error);
         }
@@ -129,14 +132,44 @@ const Sales = () => {
         }
     };
 
+    // New search handler
+    const handleSearch = (e) => {
+        const term = e.target.value.toLowerCase();
+        setSearchTerm(term);
+
+        const filtered = sales.filter((sale) => {
+            const discountDisplay = sale.hasDiscount ? sale.discountPercentage.toString() : 'no discount';
+            return (
+                sale.productId.toLowerCase().includes(term) ||
+                sale.soldPrice.toString().includes(term) ||
+                sale.soldDate.toLowerCase().includes(term) ||
+                discountDisplay.toLowerCase().includes(term) ||
+                sale.discountPrice.toString().includes(term) ||
+                sale.finalSoldPrice.toString().includes(term)
+            );
+        });
+
+        setFilteredSales(filtered);
+    };
+
     return (
         <>
             <OwnerNavbar />
             <Box sx={{ p: 4 }} className="page-container">
                 <Typography variant="h4" gutterBottom>Sales Management</Typography>
-                <Button variant="contained" color="primary" onClick={handleOpenDialog}>
-                    Record New Sale
-                </Button>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+                    <TextField
+                        label="Search Sales"
+                        variant="outlined"
+                        value={searchTerm}
+                        onChange={handleSearch}
+                        sx={{ width: '300px' }}
+                        placeholder="Search by ID, price, date, discount, etc."
+                    />
+                    <Button variant="contained" color="primary" onClick={handleOpenDialog}>
+                        Record New Sale
+                    </Button>
+                </Box>
                 <TableContainer component={Paper} sx={{ mt: 3 }}>
                     <Table>
                         <TableHead>
@@ -150,12 +183,12 @@ const Sales = () => {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {sales.map((sale) => (
+                            {filteredSales.map((sale) => ( // Use filteredSales instead of sales
                                 <TableRow key={sale.id}>
                                     <TableCell>{sale.productId}</TableCell>
                                     <TableCell>{sale.soldPrice}</TableCell>
                                     <TableCell>{sale.soldDate}</TableCell>
-                                    <TableCell>{sale.hasDiscount ? sale.discountPercentage : 'N/A'}</TableCell>
+                                    <TableCell>{sale.hasDiscount ? sale.discountPercentage : 'NO DISCOUNT'}</TableCell>
                                     <TableCell>{sale.discountPrice}</TableCell>
                                     <TableCell>{sale.finalSoldPrice}</TableCell>
                                 </TableRow>
