@@ -16,6 +16,7 @@ const ProductManagement = () => {
         productName: '',
         purchaseDate: '',
         purchasePrice: '',
+        sellingPrice: '',
         category: '',
         inStock: true,
         categoryDetails: {}
@@ -25,13 +26,17 @@ const ProductManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
 
+    const BASE_URL = 'http://localhost:8080'; // Updated to match backend port
+
     useEffect(() => {
         fetchProducts();
     }, []);
 
     const fetchProducts = async () => {
         try {
-            const response = await axios.get('http://localhost:8080/api/products');
+            const response = await axios.get(`${BASE_URL}/api/products`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
             const parsedProducts = response.data.map(product => ({
                 ...product,
                 categoryDetails: product.categoryDetails ? JSON.parse(product.categoryDetails) : {}
@@ -39,17 +44,15 @@ const ProductManagement = () => {
             setProducts(parsedProducts);
             setFilteredProducts(parsedProducts);
         } catch (error) {
-            console.error('Error fetching products:', error);
+            console.error('Error fetching products:', error.message);
         }
     };
 
     useEffect(() => {
         let filtered = products;
-
         if (filterCategory) {
             filtered = filtered.filter(item => item.category.toLowerCase() === filterCategory.toLowerCase());
         }
-
         if (searchTerm) {
             filtered = filtered.filter(item => {
                 const categoryWithDetails = formatCategoryDetails(item.category, item.categoryDetails).toLowerCase();
@@ -59,11 +62,11 @@ const ProductManagement = () => {
                     item.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                     categoryWithDetails.includes(searchTerm.toLowerCase()) ||
                     item.purchasePrice.toString().includes(searchTerm.toLowerCase()) ||
+                    item.sellingPrice.toString().includes(searchTerm.toLowerCase()) ||
                     stockStatus.includes(searchTerm.toLowerCase())
                 );
             });
         }
-
         setFilteredProducts(filtered);
     }, [products, searchTerm, filterCategory]);
 
@@ -86,6 +89,7 @@ const ProductManagement = () => {
         if (!currentProduct.productName.trim()) newErrors.productName = 'Product Name is required';
         if (!currentProduct.purchaseDate) newErrors.purchaseDate = 'Purchase Date is required';
         if (!currentProduct.purchasePrice || isNaN(currentProduct.purchasePrice) || currentProduct.purchasePrice <= 0) newErrors.purchasePrice = 'Purchase Price must be a positive number';
+        if (!currentProduct.sellingPrice || isNaN(currentProduct.sellingPrice) || currentProduct.sellingPrice <= 0) newErrors.sellingPrice = 'Selling Price must be a positive number';
         if (!currentProduct.category) newErrors.category = 'Category is required';
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -98,6 +102,7 @@ const ProductManagement = () => {
                 productName: product.productName,
                 purchaseDate: product.purchaseDate,
                 purchasePrice: product.purchasePrice,
+                sellingPrice: product.sellingPrice,
                 category: product.category,
                 inStock: product.inStock,
                 categoryDetails: product.categoryDetails || {}
@@ -109,6 +114,7 @@ const ProductManagement = () => {
                 productName: '',
                 purchaseDate: '',
                 purchasePrice: '',
+                sellingPrice: '',
                 category: '',
                 inStock: true,
                 categoryDetails: {}
@@ -135,6 +141,7 @@ const ProductManagement = () => {
                 productName: currentProduct.productName,
                 purchaseDate: currentProduct.purchaseDate,
                 purchasePrice: parseFloat(currentProduct.purchasePrice),
+                sellingPrice: parseFloat(currentProduct.sellingPrice),
                 category: currentProduct.category,
                 inStock: currentProduct.inStock,
                 categoryDetails: JSON.stringify(currentProduct.categoryDetails || {})
@@ -143,29 +150,35 @@ const ProductManagement = () => {
             console.log('Saving product payload:', productToSave);
 
             if (isEditMode) {
-                const response = await axios.put(`http://localhost:8080/api/products/${currentProduct.id}`, productToSave);
-                console.log('Update response:', response.data);
+                await axios.put(`${BASE_URL}/api/products/${currentProduct.id}`, productToSave, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('Product updated successfully');
             } else {
-                const response = await axios.post('http://localhost:8080/api/products', productToSave);
-                console.log('Create response:', response.data);
+                await axios.post(`${BASE_URL}/api/products`, productToSave, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('Product added successfully');
             }
             fetchProducts();
             handleCloseDialog();
         } catch (error) {
             const errorMessage = error.response
                 ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText || 'Unknown error'}`
-                : error.message;
-            console.error('Error saving product:', error.response || error);
+                : `Network Error: ${error.message}`;
+            console.error('Error saving product:', errorMessage);
             setErrors({ general: `Failed to save product: ${errorMessage}` });
         }
     };
 
     const handleDeleteProduct = async (id) => {
         try {
-            await axios.delete(`http://localhost:8080/api/products/${id}`);
+            await axios.delete(`${BASE_URL}/api/products/${id}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
             fetchProducts();
         } catch (error) {
-            console.error('Error deleting product:', error);
+            console.error('Error deleting product:', error.message);
         }
     };
 
@@ -183,11 +196,9 @@ const ProductManagement = () => {
 
     const formatCategoryDetails = (category, details) => {
         if (!details || Object.keys(details).length === 0) return category;
-
         const detailStrings = Object.entries(details)
             .filter(([_, value]) => value)
             .map(([key, value]) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${value}`);
-
         return `${category} (${detailStrings.join(', ')})`;
     };
 
@@ -241,6 +252,7 @@ const ProductManagement = () => {
                                 <TableCell>Name</TableCell>
                                 <TableCell>Purchase Date</TableCell>
                                 <TableCell>Purchase Price</TableCell>
+                                <TableCell>Selling Price</TableCell>
                                 <TableCell>Category</TableCell>
                                 <TableCell>Stock Status</TableCell>
                                 <TableCell>Actions</TableCell>
@@ -253,6 +265,7 @@ const ProductManagement = () => {
                                     <TableCell>{item.productName}</TableCell>
                                     <TableCell>{item.purchaseDate}</TableCell>
                                     <TableCell>{item.purchasePrice}</TableCell>
+                                    <TableCell>{item.sellingPrice}</TableCell>
                                     <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
                                     <TableCell>{item.inStock ? 'In Stock' : 'Out of Stock'}</TableCell>
                                     <TableCell>
@@ -319,6 +332,18 @@ const ProductManagement = () => {
                             required
                             type="number"
                         />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Selling Price"
+                            name="sellingPrice"
+                            value={currentProduct.sellingPrice}
+                            onChange={handleInputChange}
+                            error={!!errors.sellingPrice}
+                            helperText={errors.sellingPrice}
+                            required
+                            type="number"
+                        />
                         <FormControl fullWidth margin="normal">
                             <InputLabel>Category</InputLabel>
                             <Select
@@ -340,7 +365,7 @@ const ProductManagement = () => {
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Size"
+                                    label="Shoe Size"
                                     name="size"
                                     value={currentProduct.categoryDetails.size || ''}
                                     onChange={handleCategoryDetailsChange}
@@ -354,10 +379,10 @@ const ProductManagement = () => {
                                     onChange={handleCategoryDetailsChange}
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Color</InputLabel>
+                                    <InputLabel>Colour</InputLabel>
                                     <Select
-                                        name="color"
-                                        value={currentProduct.categoryDetails.color || ''}
+                                        name="colour"
+                                        value={currentProduct.categoryDetails.colour || ''}
                                         onChange={handleCategoryDetailsChange}
                                     >
                                         <MenuItem value="white">White</MenuItem>
@@ -405,16 +430,8 @@ const ProductManagement = () => {
                         )}
                         {currentProduct.category === 'water bottle' && (
                             <>
-                                <TextField
-                                    fullWidth
-                                    margin="normal"
-                                    label="Brand Name"
-                                    name="brandName"
-                                    value={currentProduct.categoryDetails.brandName || ''}
-                                    onChange={handleCategoryDetailsChange}
-                                />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Size</InputLabel>
+                                    <InputLabel>Bottle Size</InputLabel>
                                     <Select
                                         name="size"
                                         value={currentProduct.categoryDetails.size || ''}
@@ -428,11 +445,31 @@ const ProductManagement = () => {
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Color"
-                                    name="color"
-                                    value={currentProduct.categoryDetails.color || ''}
+                                    label="Brand Name"
+                                    name="brandName"
+                                    value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Colour"
+                                    name="colour"
+                                    value={currentProduct.categoryDetails.colour || ''}
+                                    onChange={handleCategoryDetailsChange}
+                                />
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={currentProduct.categoryDetails.type || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="school">School</MenuItem>
+                                        <MenuItem value="flasks">Flasks</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </>
                         )}
                         {currentProduct.category === 'bags' && (
@@ -445,6 +482,14 @@ const ProductManagement = () => {
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Colour"
+                                    name="colour"
+                                    value={currentProduct.categoryDetails.colour || ''}
+                                    onChange={handleCategoryDetailsChange}
+                                />
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Type</InputLabel>
                                     <Select
@@ -452,14 +497,25 @@ const ProductManagement = () => {
                                         value={currentProduct.categoryDetails.type || ''}
                                         onChange={handleCategoryDetailsChange}
                                     >
-                                        <MenuItem value="school bags">School Bags</MenuItem>
+                                        <MenuItem value="school">School</MenuItem>
+                                        <MenuItem value="office">Office</MenuItem>
                                         <MenuItem value="hand bags">Hand Bags</MenuItem>
                                         <MenuItem value="side bags">Side Bags</MenuItem>
-                                        <MenuItem value="office bags - mens">Office Bags - Mens</MenuItem>
                                         <MenuItem value="purse">Purse</MenuItem>
-                                        <MenuItem value="travelling bags">Travelling Bags</MenuItem>
+                                        <MenuItem value="travelling bag">Travelling Bag</MenuItem>
                                         <MenuItem value="lunch bags">Lunch Bags</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Gender</InputLabel>
+                                    <Select
+                                        name="gender"
+                                        value={currentProduct.categoryDetails.gender || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="Men">Men</MenuItem>
+                                        <MenuItem value="Women">Women</MenuItem>
                                     </Select>
                                 </FormControl>
                             </>
@@ -485,9 +541,9 @@ const ProductManagement = () => {
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Color"
-                                    name="color"
-                                    value={currentProduct.categoryDetails.color || ''}
+                                    label="Colour"
+                                    name="colour"
+                                    value={currentProduct.categoryDetails.colour || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
                                 <FormControl fullWidth margin="normal">
@@ -497,8 +553,8 @@ const ProductManagement = () => {
                                         value={currentProduct.categoryDetails.gender || ''}
                                         onChange={handleCategoryDetailsChange}
                                     >
-                                        <MenuItem value="mens">Mens</MenuItem>
-                                        <MenuItem value="ladies">Ladies</MenuItem>
+                                        <MenuItem value="Men">Men</MenuItem>
+                                        <MenuItem value="Women">Women</MenuItem>
                                     </Select>
                                 </FormControl>
                             </>
@@ -514,15 +570,15 @@ const ProductManagement = () => {
                                     onChange={handleCategoryDetailsChange}
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Color</InputLabel>
+                                    <InputLabel>Colour</InputLabel>
                                     <Select
-                                        name="color"
-                                        value={currentProduct.categoryDetails.color || ''}
+                                        name="colour"
+                                        value={currentProduct.categoryDetails.colour || ''}
                                         onChange={handleCategoryDetailsChange}
                                     >
-                                        <MenuItem value="white">White</MenuItem>
                                         <MenuItem value="black">Black</MenuItem>
-                                        <MenuItem value="brown">Brown</MenuItem>
+                                        <MenuItem value="white">White</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
                                     </Select>
                                 </FormControl>
                             </>
@@ -537,19 +593,6 @@ const ProductManagement = () => {
                                     value={currentProduct.categoryDetails.size || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
-                                <FormControl fullWidth margin="normal">
-                                    <InputLabel>Socks Type</InputLabel>
-                                    <Select
-                                        name="type"
-                                        value={currentProduct.categoryDetails.type || ''}
-                                        onChange={handleCategoryDetailsChange}
-                                    >
-                                        <MenuItem value="baby">Baby</MenuItem>
-                                        <MenuItem value="school">School</MenuItem>
-                                        <MenuItem value="office">Office</MenuItem>
-                                        <MenuItem value="other">Other</MenuItem>
-                                    </Select>
-                                </FormControl>
                                 <TextField
                                     fullWidth
                                     margin="normal"
@@ -558,6 +601,31 @@ const ProductManagement = () => {
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Colour</InputLabel>
+                                    <Select
+                                        name="colour"
+                                        value={currentProduct.categoryDetails.colour || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="white">White</MenuItem>
+                                        <MenuItem value="black">Black</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Type</InputLabel>
+                                    <Select
+                                        name="type"
+                                        value={currentProduct.categoryDetails.type || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                    >
+                                        <MenuItem value="school">School</MenuItem>
+                                        <MenuItem value="office">Office</MenuItem>
+                                        <MenuItem value="baby">Baby</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
+                                    </Select>
+                                </FormControl>
                             </>
                         )}
                         {currentProduct.category === 'other accessories' && (
@@ -565,17 +633,17 @@ const ProductManagement = () => {
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Product Type"
-                                    name="type"
-                                    value={currentProduct.categoryDetails.type || ''}
+                                    label="Brand Name"
+                                    name="brandName"
+                                    value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Brand Name"
-                                    name="brandName"
-                                    value={currentProduct.categoryDetails.brandName || ''}
+                                    label="Type"
+                                    name="type"
+                                    value={currentProduct.categoryDetails.type || ''}
                                     onChange={handleCategoryDetailsChange}
                                 />
                             </>
