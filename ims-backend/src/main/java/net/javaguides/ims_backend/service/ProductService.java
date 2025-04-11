@@ -1,13 +1,13 @@
 // src/main/java/net/javaguides/ims_backend/service/ProductService.java
 package net.javaguides.ims_backend.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 import net.javaguides.ims_backend.entity.Product;
 import net.javaguides.ims_backend.repository.ProductRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Random;
+import java.util.Optional;
 
 @Service
 public class ProductService {
@@ -15,52 +15,54 @@ public class ProductService {
     @Autowired
     private ProductRepository productRepository;
 
-    public Product createProduct(Product product) {
-        String categoryAbbr = getCategoryAbbreviation(product.getCategory());
-        String uniqueNumber;
-        String productId;
-        do {
-            uniqueNumber = String.format("%03d", new Random().nextInt(1000));
-            productId = uniqueNumber + categoryAbbr;
-        } while (productRepository.findByProductId(productId) != null);
-        product.setProductId(productId);
-        return productRepository.save(product);
-    }
-
-    public Product updateProduct(Long id, Product product) {
-        Product existing = productRepository.findById(id).orElseThrow(() -> new RuntimeException("Product not found"));
-        existing.setProductName(product.getProductName());
-        existing.setPurchaseDate(product.getPurchaseDate());
-        existing.setPurchasePrice(product.getPurchasePrice());
-        existing.setSupplierName(product.getSupplierName());
-        existing.setCategory(product.getCategory());
-        existing.setInStock(product.getInStock());
-        existing.setCategoryDetails(product.getCategoryDetails());
-        return productRepository.save(existing);
-    }
-
-    public void deleteProduct(Long id) {
-        productRepository.deleteById(id);
-    }
-
     public List<Product> getAllProducts() {
         return productRepository.findAll();
     }
 
-    public Product findByProductId(String productId) {
-        return productRepository.findByProductId(productId);
+    public Product createProduct(Product product) {
+        // Generate productId: 3-digit number + 3-char category abbreviation
+        String categoryAbbr = getCategoryAbbreviation(product.getCategory());
+        long categoryCount = productRepository.countByCategory(product.getCategory()) + 1;
+        String uniqueNum = String.format("%03d", Math.min(categoryCount, 999)); // Cap at 999
+        product.setProductId(uniqueNum + categoryAbbr);
+        return productRepository.save(product);
+    }
+
+    public Optional<Product> updateProduct(Long id, Product productDetails) {
+        Optional<Product> optionalProduct = productRepository.findById(id);
+        if (optionalProduct.isPresent()) {
+            Product product = optionalProduct.get();
+            product.setProductName(productDetails.getProductName());
+            product.setPurchaseDate(productDetails.getPurchaseDate());
+            product.setPurchasePrice(productDetails.getPurchasePrice());
+            product.setCategory(productDetails.getCategory());
+            product.setInStock(productDetails.getInStock());
+            product.setCategoryDetails(productDetails.getCategoryDetails());
+            // productId is not updated (immutable)
+            return Optional.of(productRepository.save(product));
+        }
+        return Optional.empty();
+    }
+
+    public boolean deleteProduct(Long id) {
+        Optional<Product> optionalProduct = productRepository.findById(id);
+        if (optionalProduct.isPresent()) {
+            productRepository.deleteById(id);
+            return true;
+        }
+        return false;
     }
 
     private String getCategoryAbbreviation(String category) {
         switch (category.toLowerCase()) {
             case "shoes": return "SHO";
-            case "water bottle": return "WBT";
+            case "water bottle": return "WAT";
             case "bags": return "BAG";
-            case "slippers": return "SLP";
-            case "shoe polish": return "SHP";
+            case "slippers": return "SLI";
+            case "shoe polish": return "POL";
             case "socks": return "SOC";
             case "other accessories": return "ACC";
-            default: return "UNK";
+            default: return "UNK"; // Unknown category fallback
         }
     }
 }
