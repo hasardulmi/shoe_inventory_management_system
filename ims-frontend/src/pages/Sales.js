@@ -20,17 +20,21 @@ const Sales = () => {
     const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
+    const BASE_URL = 'http://localhost:8080'; // Adjusted to match backend port
+
     useEffect(() => {
         fetchSales();
     }, []);
 
     const fetchSales = async () => {
         try {
-            const response = await axios.get('http://localhost:8081/api/sales');
+            const response = await axios.get(`${BASE_URL}/api/sales`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
             setSales(response.data);
             setFilteredSales(response.data);
         } catch (error) {
-            console.error('Error fetching sales:', error);
+            console.error('Error fetching sales:', error.message);
         }
     };
 
@@ -40,7 +44,10 @@ const Sales = () => {
             filtered = filtered.filter(item =>
                 item.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.soldPrice.toString().includes(searchTerm.toLowerCase()) ||
-                item.soldDate.includes(searchTerm.toLowerCase())
+                item.soldDate.includes(searchTerm.toLowerCase()) ||
+                item.discountPercentage?.toString().includes(searchTerm.toLowerCase()) ||
+                item.discountPrice?.toString().includes(searchTerm.toLowerCase()) ||
+                item.finalSoldPrice?.toString().includes(searchTerm.toLowerCase())
             );
         }
         setFilteredSales(filtered);
@@ -54,17 +61,27 @@ const Sales = () => {
 
     const validateForm = async () => {
         const newErrors = {};
-        if (!currentSale.productId.trim()) newErrors.productId = 'Product ID is required';
-        else {
+        if (!currentSale.productId.trim()) {
+            newErrors.productId = 'Product ID is required';
+        } else {
             try {
-                await axios.get(`http://localhost:8081/api/products/by-product-id/${currentSale.productId}`);
+                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${currentSale.productId}`);
+                if (!response.data || !response.data.inStock) {
+                    newErrors.productId = 'Product is either not found or out of stock';
+                }
             } catch (error) {
                 newErrors.productId = 'Product ID does not exist';
             }
         }
-        if (!currentSale.soldPrice || isNaN(currentSale.soldPrice) || currentSale.soldPrice <= 0) newErrors.soldPrice = 'Sold Price must be a positive number';
-        if (!currentSale.soldDate) newErrors.soldDate = 'Sold Date is required';
-        if (currentSale.discountPercentage && (isNaN(currentSale.discountPercentage) || currentSale.discountPercentage < 0 || currentSale.discountPercentage > 100)) newErrors.discountPercentage = 'Discount must be between 0 and 100';
+        if (!currentSale.soldPrice || isNaN(currentSale.soldPrice) || parseFloat(currentSale.soldPrice) <= 0) {
+            newErrors.soldPrice = 'Sold Price must be a positive number';
+        }
+        if (!currentSale.soldDate) {
+            newErrors.soldDate = 'Sold Date is required';
+        }
+        if (currentSale.discountPercentage && (isNaN(currentSale.discountPercentage) || parseFloat(currentSale.discountPercentage) < 0 || parseFloat(currentSale.discountPercentage) > 100)) {
+            newErrors.discountPercentage = 'Discount must be between 0 and 100';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -108,12 +125,18 @@ const Sales = () => {
 
             console.log('Saving sale payload:', saleToSave);
 
-            await axios.post('http://localhost:8081/api/sales', saleToSave);
+            await axios.post(`${BASE_URL}/api/sales`, saleToSave, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log('Sale added successfully');
             fetchSales();
             handleCloseDialog();
         } catch (error) {
-            console.error('Error saving sale:', error);
-            setErrors({ general: 'Failed to save sale' });
+            const errorMessage = error.response
+                ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText}`
+                : `Network Error: ${error.message}`;
+            console.error('Error saving sale:', errorMessage);
+            setErrors({ general: `Failed to save sale: ${errorMessage}` });
         }
     };
 
@@ -136,7 +159,7 @@ const Sales = () => {
                         value={searchTerm}
                         onChange={handleSearch}
                         sx={{ width: '300px' }}
-                        placeholder="Search by ID, price, date"
+                        placeholder="Search by ID, price, date, discount"
                     />
                     <Button variant="contained" color="primary" onClick={handleOpenDialog} className="action-button">
                         Add New Sale
@@ -159,10 +182,10 @@ const Sales = () => {
                             {filteredSales.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>{item.productId}</TableCell>
-                                    <TableCell>{item.soldPrice}</TableCell>
-                                    <TableCell>{item.discountPercentage || 0}</TableCell>
-                                    <TableCell>{item.discountPrice || 0}</TableCell>
-                                    <TableCell>{item.finalSoldPrice}</TableCell>
+                                    <TableCell>{item.soldPrice.toFixed(2)}</TableCell>
+                                    <TableCell>{item.discountPercentage ? item.discountPercentage.toFixed(2) : '0.00'}</TableCell>
+                                    <TableCell>{item.discountPrice ? item.discountPrice.toFixed(2) : '0.00'}</TableCell>
+                                    <TableCell>{item.finalSoldPrice.toFixed(2)}</TableCell>
                                     <TableCell>{item.soldDate}</TableCell>
                                 </TableRow>
                             ))}
@@ -173,10 +196,54 @@ const Sales = () => {
                 <Dialog open={openDialog} onClose={handleCloseDialog} className="dialog">
                     <DialogTitle>Add New Sale</DialogTitle>
                     <DialogContent>
-                        <TextField fullWidth margin="normal" label="Product ID" name="productId" value={currentSale.productId} onChange={handleInputChange} error={!!errors.productId} helperText={errors.productId} required />
-                        <TextField fullWidth margin="normal" label="Sold Price" name="soldPrice" value={currentSale.soldPrice} onChange={handleInputChange} error={!!errors.soldPrice} helperText={errors.soldPrice} required type="number" />
-                        <TextField fullWidth margin="normal" label="Sold Date" name="soldDate" value={currentSale.soldDate} onChange={handleInputChange} error={!!errors.soldDate} helperText={errors.soldDate} required type="date" InputLabelProps={{ shrink: true }} />
-                        <TextField fullWidth margin="normal" label="Discount Percentage" name="discountPercentage" value={currentSale.discountPercentage} onChange={handleInputChange} error={!!errors.discountPercentage} helperText={errors.discountPercentage} type="number" placeholder="0-100" />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Product ID"
+                            name="productId"
+                            value={currentSale.productId}
+                            onChange={handleInputChange}
+                            error={!!errors.productId}
+                            helperText={errors.productId}
+                            required
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Sold Price"
+                            name="soldPrice"
+                            value={currentSale.soldPrice}
+                            onChange={handleInputChange}
+                            error={!!errors.soldPrice}
+                            helperText={errors.soldPrice}
+                            required
+                            type="number"
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Sold Date"
+                            name="soldDate"
+                            value={currentSale.soldDate}
+                            onChange={handleInputChange}
+                            error={!!errors.soldDate}
+                            helperText={errors.soldDate}
+                            required
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Discount Percentage"
+                            name="discountPercentage"
+                            value={currentSale.discountPercentage}
+                            onChange={handleInputChange}
+                            error={!!errors.discountPercentage}
+                            helperText={errors.discountPercentage || 'Optional (0-100)'}
+                            type="number"
+                            placeholder="0-100"
+                        />
                         {errors.general && <Typography color="error">{errors.general}</Typography>}
                     </DialogContent>
                     <DialogActions>
