@@ -40,9 +40,9 @@ public class SaleController {
                 return ResponseEntity.badRequest().body(null);
             }
             if (!product.getInStock()) {
-                return ResponseEntity.status(400).body(null); // Product out of stock
+                return ResponseEntity.status(400).body(null);
             }
-            product.setInStock(false); // Mark product as sold
+            product.setInStock(false);
             productRepository.save(product);
             Sale savedSale = saleRepository.save(sale);
             return ResponseEntity.ok(savedSale);

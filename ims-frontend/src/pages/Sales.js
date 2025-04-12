@@ -20,7 +20,7 @@ const Sales = () => {
     const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
-    const BASE_URL = 'http://localhost:8080'; // Adjusted to match backend port
+    const BASE_URL = 'http://localhost:8080';
 
     useEffect(() => {
         fetchSales();
@@ -53,10 +53,30 @@ const Sales = () => {
         setFilteredSales(filtered);
     }, [sales, searchTerm]);
 
-    const handleInputChange = (e) => {
+    const handleInputChange = async (e) => {
         const { name, value } = e.target;
         setCurrentSale({ ...currentSale, [name]: value });
         setErrors({ ...errors, [name]: '' });
+
+        // Auto-fill soldPrice when productId changes
+        if (name === 'productId' && value.trim()) {
+            try {
+                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`);
+                if (response.data && response.data.inStock) {
+                    setCurrentSale(prev => ({
+                        ...prev,
+                        soldPrice: response.data.sellingPrice.toString() // Auto-fill with sellingPrice
+                    }));
+                    setErrors({ ...errors, productId: '' });
+                } else {
+                    setErrors({ ...errors, productId: 'Product is not found or out of stock' });
+                    setCurrentSale(prev => ({ ...prev, soldPrice: '' }));
+                }
+            } catch (error) {
+                setErrors({ ...errors, productId: 'Product ID does not exist' });
+                setCurrentSale(prev => ({ ...prev, soldPrice: '' }));
+            }
+        }
     };
 
     const validateForm = async () => {
@@ -215,7 +235,7 @@ const Sales = () => {
                             value={currentSale.soldPrice}
                             onChange={handleInputChange}
                             error={!!errors.soldPrice}
-                            helperText={errors.soldPrice}
+                            helperText={errors.soldPrice || 'Auto-filled from product selling price, editable'}
                             required
                             type="number"
                         />
