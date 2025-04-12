@@ -26,7 +26,12 @@ const ProductManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
 
-    const BASE_URL = 'http://localhost:8080'; // Updated to match backend port
+    const BASE_URL = 'http://localhost:8080';
+
+    // Retrieve token from localStorage (or your auth mechanism)
+    const getAuthToken = () => {
+        return localStorage.getItem('token'); // Adjust based on your auth storage
+    };
 
     useEffect(() => {
         fetchProducts();
@@ -34,9 +39,13 @@ const ProductManagement = () => {
 
     const fetchProducts = async () => {
         try {
-            const response = await axios.get(`${BASE_URL}/api/products`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            const token = getAuthToken();
+            const headers = token ? {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            } : { 'Content-Type': 'application/json' };
+
+            const response = await axios.get(`${BASE_URL}/api/products`, { headers });
             const parsedProducts = response.data.map(product => ({
                 ...product,
                 categoryDetails: product.categoryDetails ? JSON.parse(product.categoryDetails) : {}
@@ -147,24 +156,26 @@ const ProductManagement = () => {
                 categoryDetails: JSON.stringify(currentProduct.categoryDetails || {})
             };
 
+            const token = getAuthToken();
+            const headers = token ? {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            } : { 'Content-Type': 'application/json' };
+
             console.log('Saving product payload:', productToSave);
 
             if (isEditMode) {
-                await axios.put(`${BASE_URL}/api/products/${currentProduct.id}`, productToSave, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                await axios.put(`${BASE_URL}/api/products/${currentProduct.id}`, productToSave, { headers });
                 console.log('Product updated successfully');
             } else {
-                await axios.post(`${BASE_URL}/api/products`, productToSave, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
+                await axios.post(`${BASE_URL}/api/products`, productToSave, { headers });
                 console.log('Product added successfully');
             }
             fetchProducts();
             handleCloseDialog();
         } catch (error) {
             const errorMessage = error.response
-                ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText || 'Unknown error'}`
+                ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText || 'Unauthorized or server error'}`
                 : `Network Error: ${error.message}`;
             console.error('Error saving product:', errorMessage);
             setErrors({ general: `Failed to save product: ${errorMessage}` });
@@ -173,9 +184,13 @@ const ProductManagement = () => {
 
     const handleDeleteProduct = async (id) => {
         try {
-            await axios.delete(`${BASE_URL}/api/products/${id}`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            const token = getAuthToken();
+            const headers = token ? {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            } : { 'Content-Type': 'application/json' };
+
+            await axios.delete(`${BASE_URL}/api/products/${id}`, { headers });
             fetchProducts();
         } catch (error) {
             console.error('Error deleting product:', error.message);
