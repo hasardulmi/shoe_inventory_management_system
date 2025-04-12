@@ -22,7 +22,7 @@ public class ProductService {
     public Product createProduct(Product product) {
         String categoryAbbr = getCategoryAbbreviation(product.getCategory());
         long categoryCount = productRepository.countByCategory(product.getCategory()) + 1;
-        String uniqueNum = String.format("%03d", Math.min(categoryCount, 999));
+        String uniqueNum = String.format("%03d", Math.min(categoryCount, 999)); // Caps at 999
         product.setProductId(uniqueNum + categoryAbbr);
         return productRepository.save(product);
     }
@@ -53,6 +53,7 @@ public class ProductService {
     }
 
     private String getCategoryAbbreviation(String category) {
+        if (category == null) return "UNK"; // Handle null case
         switch (category.toLowerCase()) {
             case "shoes": return "SHO";
             case "water bottle": return "WAT";

@@ -3,8 +3,8 @@ package net.javaguides.ims_backend.repository;
 
 import net.javaguides.ims_backend.entity.Product;
 import org.springframework.data.jpa.repository.JpaRepository;
-import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    long countByCategory(String category);
+    Product findByProductId(String productId); // Existing method (e.g., for SalesManagement)
+    long countByCategory(String category); // Added method to count products by category
 }

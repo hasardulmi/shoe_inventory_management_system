@@ -13,7 +13,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id", unique = true, nullable = false, updatable = false, length = 6)
+    @Column(name = "product_id", unique = true, nullable = false)
     private String productId;
 
     @Column(name = "product_name", nullable = false)
@@ -34,6 +34,6 @@ public class Product {
     @Column(name = "in_stock", nullable = false)
     private Boolean inStock;
 
-    @Column(name = "category_details")
+    @Column(name = "category_details", columnDefinition = "TEXT")
     private String categoryDetails;
 }
