@@ -12,7 +12,6 @@ const ProductManagement = () => {
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
     const [currentProduct, setCurrentProduct] = useState({
-        id: null,
         productName: '',
         purchaseDate: '',
         purchasePrice: '',
@@ -21,17 +20,11 @@ const ProductManagement = () => {
         inStock: true,
         categoryDetails: {}
     });
-    const [isEditMode, setIsEditMode] = useState(false);
     const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('');
 
     const BASE_URL = 'http://localhost:8080';
-
-    // Retrieve token from localStorage (or your auth mechanism)
-    const getAuthToken = () => {
-        return localStorage.getItem('token'); // Adjust based on your auth storage
-    };
 
     useEffect(() => {
         fetchProducts();
@@ -39,13 +32,7 @@ const ProductManagement = () => {
 
     const fetchProducts = async () => {
         try {
-            const token = getAuthToken();
-            const headers = token ? {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            } : { 'Content-Type': 'application/json' };
-
-            const response = await axios.get(`${BASE_URL}/api/products`, { headers });
+            const response = await axios.get(`${BASE_URL}/api/products`);
             const parsedProducts = response.data.map(product => ({
                 ...product,
                 categoryDetails: product.categoryDetails ? JSON.parse(product.categoryDetails) : {}
@@ -53,7 +40,7 @@ const ProductManagement = () => {
             setProducts(parsedProducts);
             setFilteredProducts(parsedProducts);
         } catch (error) {
-            console.error('Error fetching products:', error.message);
+            console.error('Error fetching products:', error);
         }
     };
 
@@ -83,6 +70,10 @@ const ProductManagement = () => {
         const { name, value } = e.target;
         setCurrentProduct({ ...currentProduct, [name]: value });
         setErrors({ ...errors, [name]: '' });
+        // Reset categoryDetails when category changes
+        if (name === 'category') {
+            setCurrentProduct(prev => ({ ...prev, categoryDetails: {} }));
+        }
     };
 
     const handleCategoryDetailsChange = (e) => {
@@ -97,39 +88,74 @@ const ProductManagement = () => {
         const newErrors = {};
         if (!currentProduct.productName.trim()) newErrors.productName = 'Product Name is required';
         if (!currentProduct.purchaseDate) newErrors.purchaseDate = 'Purchase Date is required';
-        if (!currentProduct.purchasePrice || isNaN(currentProduct.purchasePrice) || currentProduct.purchasePrice <= 0) newErrors.purchasePrice = 'Purchase Price must be a positive number';
-        if (!currentProduct.sellingPrice || isNaN(currentProduct.sellingPrice) || currentProduct.sellingPrice <= 0) newErrors.sellingPrice = 'Selling Price must be a positive number';
+        if (!currentProduct.purchasePrice || isNaN(currentProduct.purchasePrice) || parseFloat(currentProduct.purchasePrice) <= 0) {
+            newErrors.purchasePrice = 'Purchase Price must be a positive number';
+        }
+        if (!currentProduct.sellingPrice || isNaN(currentProduct.sellingPrice) || parseFloat(currentProduct.sellingPrice) <= 0) {
+            newErrors.sellingPrice = 'Selling Price must be a positive number';
+        }
         if (!currentProduct.category) newErrors.category = 'Category is required';
+        // Validate categoryDetails for shoes
+        if (currentProduct.category === 'shoes') {
+            if (!currentProduct.categoryDetails.shoeSize) newErrors.shoeSize = 'Shoe Size is required';
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+            if (!currentProduct.categoryDetails.laces) newErrors.laces = 'Laces is required';
+            if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
+            if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
+        }
+        // Validate categoryDetails for slippers
+        if (currentProduct.category === 'slippers') {
+            if (!currentProduct.categoryDetails.slipperSize) newErrors.slipperSize = 'Slipper Size is required';
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+            if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
+        }
+        // Validate categoryDetails for bags
+        if (currentProduct.category === 'bags') {
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+            if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
+            if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
+        }
+        // Validate categoryDetails for water bottle
+        if (currentProduct.category === 'water bottle') {
+            if (!currentProduct.categoryDetails.bottleSize) newErrors.bottleSize = 'Bottle Size is required';
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+            if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
+        }
+        // Validate categoryDetails for shoe polish
+        if (currentProduct.category === 'shoe polish') {
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+        }
+        // Validate categoryDetails for socks
+        if (currentProduct.category === 'socks') {
+            if (!currentProduct.categoryDetails.sockSize) newErrors.sockSize = 'Sock Size is required';
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
+            if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
+        }
+        // Validate categoryDetails for other accessories
+        if (currentProduct.category === 'other accessories') {
+            if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
+            if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleOpenDialog = (product = null) => {
-        if (product) {
-            setCurrentProduct({
-                id: product.id,
-                productName: product.productName,
-                purchaseDate: product.purchaseDate,
-                purchasePrice: product.purchasePrice,
-                sellingPrice: product.sellingPrice,
-                category: product.category,
-                inStock: product.inStock,
-                categoryDetails: product.categoryDetails || {}
-            });
-            setIsEditMode(true);
-        } else {
-            setCurrentProduct({
-                id: null,
-                productName: '',
-                purchaseDate: '',
-                purchasePrice: '',
-                sellingPrice: '',
-                category: '',
-                inStock: true,
-                categoryDetails: {}
-            });
-            setIsEditMode(false);
-        }
+    const handleOpenDialog = () => {
+        setCurrentProduct({
+            productName: '',
+            purchaseDate: '',
+            purchasePrice: '',
+            sellingPrice: '',
+            category: '',
+            inStock: true,
+            categoryDetails: {}
+        });
         setErrors({});
         setOpenDialog(true);
     };
@@ -153,47 +179,23 @@ const ProductManagement = () => {
                 sellingPrice: parseFloat(currentProduct.sellingPrice),
                 category: currentProduct.category,
                 inStock: currentProduct.inStock,
-                categoryDetails: JSON.stringify(currentProduct.categoryDetails || {})
+                categoryDetails: JSON.stringify(currentProduct.categoryDetails)
             };
-
-            const token = getAuthToken();
-            const headers = token ? {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            } : { 'Content-Type': 'application/json' };
 
             console.log('Saving product payload:', productToSave);
 
-            if (isEditMode) {
-                await axios.put(`${BASE_URL}/api/products/${currentProduct.id}`, productToSave, { headers });
-                console.log('Product updated successfully');
-            } else {
-                await axios.post(`${BASE_URL}/api/products`, productToSave, { headers });
-                console.log('Product added successfully');
-            }
+            const response = await axios.post(`${BASE_URL}/api/products`, productToSave, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log('Create response:', response.data);
             fetchProducts();
             handleCloseDialog();
         } catch (error) {
             const errorMessage = error.response
-                ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText || 'Unauthorized or server error'}`
+                ? `Status ${error.response.status}: ${error.response.data.message || JSON.stringify(error.response.data) || 'Bad Request'}`
                 : `Network Error: ${error.message}`;
             console.error('Error saving product:', errorMessage);
             setErrors({ general: `Failed to save product: ${errorMessage}` });
-        }
-    };
-
-    const handleDeleteProduct = async (id) => {
-        try {
-            const token = getAuthToken();
-            const headers = token ? {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            } : { 'Content-Type': 'application/json' };
-
-            await axios.delete(`${BASE_URL}/api/products/${id}`, { headers });
-            fetchProducts();
-        } catch (error) {
-            console.error('Error deleting product:', error.message);
         }
     };
 
@@ -252,7 +254,7 @@ const ProductManagement = () => {
                     <Button
                         variant="contained"
                         color="primary"
-                        onClick={() => handleOpenDialog()}
+                        onClick={handleOpenDialog}
                         className="action-button"
                     >
                         Add New Product
@@ -270,7 +272,6 @@ const ProductManagement = () => {
                                 <TableCell>Selling Price</TableCell>
                                 <TableCell>Category</TableCell>
                                 <TableCell>Stock Status</TableCell>
-                                <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -279,29 +280,10 @@ const ProductManagement = () => {
                                     <TableCell>{item.productId}</TableCell>
                                     <TableCell>{item.productName}</TableCell>
                                     <TableCell>{item.purchaseDate}</TableCell>
-                                    <TableCell>{item.purchasePrice}</TableCell>
-                                    <TableCell>{item.sellingPrice}</TableCell>
+                                    <TableCell>{item.purchasePrice.toFixed(2)}</TableCell>
+                                    <TableCell>{item.sellingPrice.toFixed(2)}</TableCell>
                                     <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
                                     <TableCell>{item.inStock ? 'In Stock' : 'Out of Stock'}</TableCell>
-                                    <TableCell>
-                                        <Button
-                                            variant="contained"
-                                            color="secondary"
-                                            onClick={() => handleOpenDialog(item)}
-                                            sx={{ mr: 1 }}
-                                            className="action-button"
-                                        >
-                                            Edit
-                                        </Button>
-                                        <Button
-                                            variant="contained"
-                                            color="error"
-                                            onClick={() => handleDeleteProduct(item.id)}
-                                            className="action-button"
-                                        >
-                                            Delete
-                                        </Button>
-                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -309,7 +291,7 @@ const ProductManagement = () => {
                 </TableContainer>
 
                 <Dialog open={openDialog} onClose={handleCloseDialog} className="dialog">
-                    <DialogTitle>{isEditMode ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+                    <DialogTitle>Add New Product</DialogTitle>
                     <DialogContent>
                         <TextField
                             fullWidth
@@ -369,7 +351,7 @@ const ProductManagement = () => {
                                 required
                             >
                                 {categoryOptions.map((cat) => (
-                                    <MenuItem key={cat} value={cat}>{cat}</MenuItem>
+                                    <MenuItem key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</MenuItem>
                                 ))}
                             </Select>
                             {errors.category && <Typography color="error">{errors.category}</Typography>}
@@ -381,9 +363,12 @@ const ProductManagement = () => {
                                     fullWidth
                                     margin="normal"
                                     label="Shoe Size"
-                                    name="size"
-                                    value={currentProduct.categoryDetails.size || ''}
+                                    name="shoeSize"
+                                    value={currentProduct.categoryDetails.shoeSize || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.shoeSize}
+                                    helperText={errors.shoeSize}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
@@ -392,19 +377,25 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Colour</InputLabel>
+                                    <InputLabel>Color</InputLabel>
                                     <Select
-                                        name="colour"
-                                        value={currentProduct.categoryDetails.colour || ''}
+                                        name="color"
+                                        value={currentProduct.categoryDetails.color || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.color}
+                                        required
                                     >
                                         <MenuItem value="white">White</MenuItem>
                                         <MenuItem value="black">Black</MenuItem>
                                         <MenuItem value="brown">Brown</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.color && <Typography color="error">{errors.color}</Typography>}
                                 </FormControl>
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Laces</InputLabel>
@@ -412,10 +403,13 @@ const ProductManagement = () => {
                                         name="laces"
                                         value={currentProduct.categoryDetails.laces || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.laces}
+                                        required
                                     >
                                         <MenuItem value="with">With Laces</MenuItem>
                                         <MenuItem value="without">Without Laces</MenuItem>
                                     </Select>
+                                    {errors.laces && <Typography color="error">{errors.laces}</Typography>}
                                 </FormControl>
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Type</InputLabel>
@@ -423,12 +417,15 @@ const ProductManagement = () => {
                                         name="type"
                                         value={currentProduct.categoryDetails.type || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.type}
+                                        required
                                     >
                                         <MenuItem value="school">School</MenuItem>
                                         <MenuItem value="deck shoes">Deck Shoes</MenuItem>
                                         <MenuItem value="baby">Baby</MenuItem>
                                         <MenuItem value="office">Office</MenuItem>
                                     </Select>
+                                    {errors.type && <Typography color="error">{errors.type}</Typography>}
                                 </FormControl>
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Gender</InputLabel>
@@ -436,27 +433,29 @@ const ProductManagement = () => {
                                         name="gender"
                                         value={currentProduct.categoryDetails.gender || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.gender}
+                                        required
                                     >
                                         <MenuItem value="Men">Men</MenuItem>
                                         <MenuItem value="Women">Women</MenuItem>
                                     </Select>
+                                    {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
                             </>
                         )}
-                        {currentProduct.category === 'water bottle' && (
+                        {currentProduct.category === 'slippers' && (
                             <>
-                                <FormControl fullWidth margin="normal">
-                                    <InputLabel>Bottle Size</InputLabel>
-                                    <Select
-                                        name="size"
-                                        value={currentProduct.categoryDetails.size || ''}
-                                        onChange={handleCategoryDetailsChange}
-                                    >
-                                        <MenuItem value="small">Small</MenuItem>
-                                        <MenuItem value="medium">Medium</MenuItem>
-                                        <MenuItem value="large">Large</MenuItem>
-                                    </Select>
-                                </FormControl>
+                                <TextField
+                                    fullWidth
+                                    margin="normal"
+                                    label="Slipper Size"
+                                    name="slipperSize"
+                                    value={currentProduct.categoryDetails.slipperSize || ''}
+                                    onChange={handleCategoryDetailsChange}
+                                    error={!!errors.slipperSize}
+                                    helperText={errors.slipperSize}
+                                    required
+                                />
                                 <TextField
                                     fullWidth
                                     margin="normal"
@@ -464,26 +463,34 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Colour"
-                                    name="colour"
-                                    value={currentProduct.categoryDetails.colour || ''}
+                                    label="Color"
+                                    name="color"
+                                    value={currentProduct.categoryDetails.color || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.color}
+                                    helperText={errors.color}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Type</InputLabel>
+                                    <InputLabel>Gender</InputLabel>
                                     <Select
-                                        name="type"
-                                        value={currentProduct.categoryDetails.type || ''}
+                                        name="gender"
+                                        value={currentProduct.categoryDetails.gender || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.gender}
+                                        required
                                     >
-                                        <MenuItem value="school">School</MenuItem>
-                                        <MenuItem value="flasks">Flasks</MenuItem>
-                                        <MenuItem value="other">Other</MenuItem>
+                                        <MenuItem value="Mens">Mens</MenuItem>
+                                        <MenuItem value="Ladies">Ladies</MenuItem>
                                     </Select>
+                                    {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
                             </>
                         )}
@@ -496,14 +503,20 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Colour"
-                                    name="colour"
-                                    value={currentProduct.categoryDetails.colour || ''}
+                                    label="Color"
+                                    name="color"
+                                    value={currentProduct.categoryDetails.color || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.color}
+                                    helperText={errors.color}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Type</InputLabel>
@@ -511,6 +524,8 @@ const ProductManagement = () => {
                                         name="type"
                                         value={currentProduct.categoryDetails.type || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.type}
+                                        required
                                     >
                                         <MenuItem value="school">School</MenuItem>
                                         <MenuItem value="office">Office</MenuItem>
@@ -521,6 +536,7 @@ const ProductManagement = () => {
                                         <MenuItem value="lunch bags">Lunch Bags</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.type && <Typography color="error">{errors.type}</Typography>}
                                 </FormControl>
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Gender</InputLabel>
@@ -528,23 +544,33 @@ const ProductManagement = () => {
                                         name="gender"
                                         value={currentProduct.categoryDetails.gender || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.gender}
+                                        required
                                     >
                                         <MenuItem value="Men">Men</MenuItem>
                                         <MenuItem value="Women">Women</MenuItem>
                                     </Select>
+                                    {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
                             </>
                         )}
-                        {currentProduct.category === 'slippers' && (
+                        {currentProduct.category === 'water bottle' && (
                             <>
-                                <TextField
-                                    fullWidth
-                                    margin="normal"
-                                    label="Slipper Size"
-                                    name="size"
-                                    value={currentProduct.categoryDetails.size || ''}
-                                    onChange={handleCategoryDetailsChange}
-                                />
+                                <FormControl fullWidth margin="normal">
+                                    <InputLabel>Bottle Size</InputLabel>
+                                    <Select
+                                        name="bottleSize"
+                                        value={currentProduct.categoryDetails.bottleSize || ''}
+                                        onChange={handleCategoryDetailsChange}
+                                        error={!!errors.bottleSize}
+                                        required
+                                    >
+                                        <MenuItem value="small">Small</MenuItem>
+                                        <MenuItem value="medium">Medium</MenuItem>
+                                        <MenuItem value="large">Large</MenuItem>
+                                    </Select>
+                                    {errors.bottleSize && <Typography color="error">{errors.bottleSize}</Typography>}
+                                </FormControl>
                                 <TextField
                                     fullWidth
                                     margin="normal"
@@ -552,25 +578,35 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
                                     margin="normal"
-                                    label="Colour"
-                                    name="colour"
-                                    value={currentProduct.categoryDetails.colour || ''}
+                                    label="Color"
+                                    name="color"
+                                    value={currentProduct.categoryDetails.color || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.color}
+                                    helperText={errors.color}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Gender</InputLabel>
+                                    <InputLabel>Type</InputLabel>
                                     <Select
-                                        name="gender"
-                                        value={currentProduct.categoryDetails.gender || ''}
+                                        name="type"
+                                        value={currentProduct.categoryDetails.type || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.type}
+                                        required
                                     >
-                                        <MenuItem value="Men">Men</MenuItem>
-                                        <MenuItem value="Women">Women</MenuItem>
+                                        <MenuItem value="school">School</MenuItem>
+                                        <MenuItem value="flasks">Flasks</MenuItem>
+                                        <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.type && <Typography color="error">{errors.type}</Typography>}
                                 </FormControl>
                             </>
                         )}
@@ -583,18 +619,24 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Colour</InputLabel>
+                                    <InputLabel>Color</InputLabel>
                                     <Select
-                                        name="colour"
-                                        value={currentProduct.categoryDetails.colour || ''}
+                                        name="color"
+                                        value={currentProduct.categoryDetails.color || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.color}
+                                        required
                                     >
                                         <MenuItem value="black">Black</MenuItem>
                                         <MenuItem value="white">White</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.color && <Typography color="error">{errors.color}</Typography>}
                                 </FormControl>
                             </>
                         )}
@@ -604,9 +646,12 @@ const ProductManagement = () => {
                                     fullWidth
                                     margin="normal"
                                     label="Sock Size"
-                                    name="size"
-                                    value={currentProduct.categoryDetails.size || ''}
+                                    name="sockSize"
+                                    value={currentProduct.categoryDetails.sockSize || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.sockSize}
+                                    helperText={errors.sockSize}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
@@ -615,18 +660,24 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <FormControl fullWidth margin="normal">
-                                    <InputLabel>Colour</InputLabel>
+                                    <InputLabel>Color</InputLabel>
                                     <Select
-                                        name="colour"
-                                        value={currentProduct.categoryDetails.colour || ''}
+                                        name="color"
+                                        value={currentProduct.categoryDetails.color || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.color}
+                                        required
                                     >
                                         <MenuItem value="white">White</MenuItem>
                                         <MenuItem value="black">Black</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.color && <Typography color="error">{errors.color}</Typography>}
                                 </FormControl>
                                 <FormControl fullWidth margin="normal">
                                     <InputLabel>Type</InputLabel>
@@ -634,12 +685,15 @@ const ProductManagement = () => {
                                         name="type"
                                         value={currentProduct.categoryDetails.type || ''}
                                         onChange={handleCategoryDetailsChange}
+                                        error={!!errors.type}
+                                        required
                                     >
                                         <MenuItem value="school">School</MenuItem>
                                         <MenuItem value="office">Office</MenuItem>
                                         <MenuItem value="baby">Baby</MenuItem>
                                         <MenuItem value="other">Other</MenuItem>
                                     </Select>
+                                    {errors.type && <Typography color="error">{errors.type}</Typography>}
                                 </FormControl>
                             </>
                         )}
@@ -652,6 +706,9 @@ const ProductManagement = () => {
                                     name="brandName"
                                     value={currentProduct.categoryDetails.brandName || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.brandName}
+                                    helperText={errors.brandName}
+                                    required
                                 />
                                 <TextField
                                     fullWidth
@@ -660,17 +717,17 @@ const ProductManagement = () => {
                                     name="type"
                                     value={currentProduct.categoryDetails.type || ''}
                                     onChange={handleCategoryDetailsChange}
+                                    error={!!errors.type}
+                                    helperText={errors.type}
+                                    required
                                 />
                             </>
                         )}
-
                         {errors.general && <Typography color="error">{errors.general}</Typography>}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleCloseDialog} className="dialog-button">Cancel</Button>
-                        <Button onClick={handleSaveProduct} color="primary" className="dialog-button">
-                            {isEditMode ? 'Update' : 'Save'}
-                        </Button>
+                        <Button onClick={handleSaveProduct} color="primary" className="dialog-button">Save</Button>
                     </DialogActions>
                 </Dialog>
             </Box>
