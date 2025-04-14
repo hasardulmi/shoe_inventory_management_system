@@ -12,6 +12,8 @@ import OwnerProfile from './pages/OwnerProfile';
 import Sales from "./pages/Sales";
 import EmployeeSalesReport from './pages/EmployeeSalesReport';
 import Return from './pages/ReturnManagement';
+import EmployeeReturn from './pages/EmployeeReturn';
+
 
 
 
@@ -31,6 +33,7 @@ function App() {
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/employee-sales-report" element={<EmployeeSalesReport />} />
                 <Route path="/return" element={<Return />} />
+                <Route path="/employee-return" element={<EmployeeReturn />} />
 
 
                 {/* Add more routes as needed */}
