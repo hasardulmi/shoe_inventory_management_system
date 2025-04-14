@@ -41,8 +41,8 @@ const OwnerNavbar = () => {
                 <Button color="inherit" component={Link} to="/payment">
                     Payment
                 </Button>
-                <Button color="inherit" component={Link} to="/view">
-                    ViewReport
+                <Button color="inherit" component={Link} to="/report">
+                   Reports
                 </Button>
                 <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
                     Logout
