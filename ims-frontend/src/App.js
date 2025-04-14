@@ -13,6 +13,8 @@ import Sales from "./pages/Sales";
 import EmployeeSalesReport from './pages/EmployeeSalesReport';
 import Return from './pages/ReturnManagement';
 import EmployeeReturn from './pages/EmployeeReturn';
+import Reports from './pages/ViewReport';
+
 
 
 
@@ -34,6 +36,7 @@ function App() {
                 <Route path="/employee-sales-report" element={<EmployeeSalesReport />} />
                 <Route path="/return" element={<Return />} />
                 <Route path="/employee-return" element={<EmployeeReturn />} />
+                <Route path="/report" element={<Reports />} />
 
 
                 {/* Add more routes as needed */}
