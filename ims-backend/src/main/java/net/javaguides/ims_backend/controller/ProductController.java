@@ -1,6 +1,7 @@
 // src/main/java/net/javaguides/ims_backend/controller/ProductController.java
 package net.javaguides.ims_backend.controller;
 
+import net.javaguides.ims_backend.dto.ErrorResponse;
 import net.javaguides.ims_backend.entity.Product;
 import net.javaguides.ims_backend.service.ProductService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
@@ -24,41 +24,32 @@ public class ProductController {
             List<Product> products = productService.getAllProducts();
             return ResponseEntity.ok(products);
         } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body(null);
         }
     }
 
     @GetMapping("/by-product-id/{productId}")
     public ResponseEntity<Product> getProductByProductId(@PathVariable String productId) {
-        Optional<Product> product = productService.getAllProducts().stream()
-                .filter(p -> p.getProductId().equals(productId))
-                .findFirst();
-        return product.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        try {
+            Product product = productService.getProductByProductId(productId);
+            if (product != null) {
+                return ResponseEntity.ok(product);
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).build();
+        }
     }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+    public ResponseEntity<?> createProduct(@RequestBody Product product) {
         try {
             Product savedProduct = productService.createProduct(product);
             return ResponseEntity.ok(savedProduct);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Validation error: " + e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(400).body(null);
+            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to save product: " + e.getMessage()));
         }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product productDetails) {
-        Optional<Product> updatedProduct = productService.updateProduct(id, productDetails);
-        return updatedProduct.map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
-        if (productService.deleteProduct(id)) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.notFound().build();
     }
 }

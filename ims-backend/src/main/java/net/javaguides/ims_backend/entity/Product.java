@@ -19,19 +19,19 @@ public class Product {
     @Column(name = "product_name", nullable = false)
     private String productName;
 
-    @Column(name = "purchase_date", nullable = false)
+    @Column(name = "purchase_date")
     private String purchaseDate;
 
-    @Column(name = "purchase_price", nullable = false)
+    @Column(name = "purchase_price")
     private Double purchasePrice;
 
-    @Column(name = "selling_price", nullable = false)
+    @Column(name = "selling_price")
     private Double sellingPrice;
 
-    @Column(name = "category", nullable = false)
+    @Column(name = "category")
     private String category;
 
-    @Column(name = "in_stock", nullable = false)
+    @Column(name = "in_stock")
     private Boolean inStock;
 
     @Column(name = "category_details", columnDefinition = "TEXT")
