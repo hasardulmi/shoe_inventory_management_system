@@ -58,23 +58,24 @@ const EmployeeSalesReport = () => {
         setCurrentSale({ ...currentSale, [name]: value });
         setErrors({ ...errors, [name]: '' });
 
-        // Auto-fill soldPrice when productId changes
+        // Auto-fill soldPrice when productId changes (non-editable)
         if (name === 'productId' && value.trim()) {
             try {
                 const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`);
                 if (response.data && response.data.inStock) {
                     setCurrentSale(prev => ({
                         ...prev,
+                        productId: value,
                         soldPrice: response.data.sellingPrice.toString() // Auto-fill with sellingPrice
                     }));
                     setErrors({ ...errors, productId: '' });
                 } else {
                     setErrors({ ...errors, productId: 'Product is not found or out of stock' });
-                    setCurrentSale(prev => ({ ...prev, soldPrice: '' }));
+                    setCurrentSale(prev => ({ ...prev, productId: value, soldPrice: '' }));
                 }
             } catch (error) {
                 setErrors({ ...errors, productId: 'Product ID does not exist' });
-                setCurrentSale(prev => ({ ...prev, soldPrice: '' }));
+                setCurrentSale(prev => ({ ...prev, productId: value, soldPrice: '' }));
             }
         }
     };
@@ -233,9 +234,9 @@ const EmployeeSalesReport = () => {
                             label="Sold Price"
                             name="soldPrice"
                             value={currentSale.soldPrice}
-                            onChange={handleInputChange}
+                            disabled
                             error={!!errors.soldPrice}
-                            helperText={errors.soldPrice || 'Auto-filled from product selling price, editable'}
+                            helperText={errors.soldPrice || 'Auto-filled from product selling price'}
                             required
                             type="number"
                         />
