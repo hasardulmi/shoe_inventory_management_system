@@ -1,4 +1,4 @@
-// src/pages/ReturnManagement.js
+// src/pages/ReturnManagement.js (snippet for verification)
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
@@ -13,8 +13,8 @@ const ReturnManagement = () => {
     const [openDialog, setOpenDialog] = useState(false);
     const [currentReturn, setCurrentReturn] = useState({
         productId: '',
-        supplierName: '',
         brandName: '',
+        supplierName: '',
         purchasePrice: '',
         reasonForReturn: '',
         returnDate: ''
@@ -22,17 +22,22 @@ const ReturnManagement = () => {
     const [errors, setErrors] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
+    const BASE_URL = 'http://localhost:8080';
+
+
     useEffect(() => {
         fetchReturns();
     }, []);
 
     const fetchReturns = async () => {
         try {
-            const response = await axios.get('http://localhost:8081/api/returns');
+            const response = await axios.get(`${BASE_URL}/api/returns`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
             setReturns(response.data);
             setFilteredReturns(response.data);
         } catch (error) {
-            console.error('Error fetching returns:', error);
+            console.error('Error fetching returns:', error.message);
         }
     };
 
@@ -41,9 +46,10 @@ const ReturnManagement = () => {
         if (searchTerm) {
             filtered = filtered.filter(item =>
                 item.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                 item.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.reasonForReturn.toLowerCase().includes(searchTerm.toLowerCase())
+                item.supplierName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.reasonForReturn.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                item.status.toLowerCase().includes(searchTerm.toLowerCase())
             );
         }
         setFilteredReturns(filtered);
@@ -51,17 +57,32 @@ const ReturnManagement = () => {
 
     const fetchProductDetails = async (productId) => {
         try {
-            const response = await axios.get(`http://localhost:8081/api/products/by-product-id/${productId}`);
+            const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${productId}`);
             const product = response.data;
-            setCurrentReturn({
-                ...currentReturn,
-                supplierName: product.supplierName || 'N/A',
-                brandName: product.categoryDetails?.brandName || 'N/A',
-                purchasePrice: product.purchasePrice || '',
-                productId
-            });
+            if (product) {
+                let brandName = 'N/A';
+                let supplierName = 'Unknown';
+                try {
+                    const categoryDetails = product.categoryDetails ? JSON.parse(product.categoryDetails) : {};
+                    brandName = categoryDetails.brandName || 'N/A';
+                    supplierName = categoryDetails.supplierName || 'Unknown';
+                } catch (e) {
+                    console.warn('Failed to parse categoryDetails:', e);
+                }
+                setCurrentReturn({
+                    ...currentReturn,
+                    productId,
+                    brandName,
+                    supplierName,
+                    purchasePrice: product.purchasePrice ? product.purchasePrice.toString() : ''
+                });
+                setErrors({ ...errors, productId: '' });
+            } else {
+                throw new Error('Product not found');
+            }
         } catch (error) {
             setErrors({ productId: 'Invalid Product ID' });
+            setCurrentReturn({ ...currentReturn, productId, brandName: '', supplierName: '', purchasePrice: '' });
         }
     };
 
@@ -69,23 +90,43 @@ const ReturnManagement = () => {
         const { name, value } = e.target;
         setCurrentReturn({ ...currentReturn, [name]: value });
         setErrors({ ...errors, [name]: '' });
-        if (name === 'productId' && value.length === 6) {
+
+        if (name === 'productId' && value.length >= 6) {
             fetchProductDetails(value);
+        } else if (name === 'productId') {
+            setCurrentReturn({ ...currentReturn, productId: value, brandName: '', supplierName: '', purchasePrice: '' });
         }
     };
 
     const validateForm = async () => {
         const newErrors = {};
-        if (!currentReturn.productId.trim()) newErrors.productId = 'Product ID is required';
-        else {
+        if (!currentReturn.productId.trim()) {
+            newErrors.productId = 'Product ID is required';
+        } else {
             try {
-                await axios.get(`http://localhost:8081/api/products/by-product-id/${currentReturn.productId}`);
+                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${currentReturn.productId}`);
+                if (!response.data) {
+                    newErrors.productId = 'Product ID does not exist';
+                }
             } catch (error) {
                 newErrors.productId = 'Product ID does not exist';
             }
         }
-        if (!currentReturn.reasonForReturn.trim()) newErrors.reasonForReturn = 'Reason for Return is required';
-        if (!currentReturn.returnDate) newErrors.returnDate = 'Return Date is required';
+        if (!currentReturn.brandName.trim()) {
+            newErrors.brandName = 'Brand Name is required';
+        }
+        if (!currentReturn.supplierName.trim()) {
+            newErrors.supplierName = 'Supplier Name is required';
+        }
+        if (!currentReturn.purchasePrice || isNaN(currentReturn.purchasePrice) || parseFloat(currentReturn.purchasePrice) <= 0) {
+            newErrors.purchasePrice = 'Valid Purchase Price is required';
+        }
+        if (!currentReturn.reasonForReturn.trim()) {
+            newErrors.reasonForReturn = 'Reason for Return is required';
+        }
+        if (!currentReturn.returnDate) {
+            newErrors.returnDate = 'Return Date is required';
+        }
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -93,8 +134,8 @@ const ReturnManagement = () => {
     const handleOpenDialog = () => {
         setCurrentReturn({
             productId: '',
-            supplierName: '',
             brandName: '',
+            supplierName: '',
             purchasePrice: '',
             reasonForReturn: '',
             returnDate: ''
@@ -117,33 +158,42 @@ const ReturnManagement = () => {
         try {
             const returnToSave = {
                 productId: currentReturn.productId,
-                supplierName: currentReturn.supplierName,
                 brandName: currentReturn.brandName,
+                supplierName: currentReturn.supplierName,
                 purchasePrice: parseFloat(currentReturn.purchasePrice),
                 reasonForReturn: currentReturn.reasonForReturn,
                 returnDate: currentReturn.returnDate,
-                returnedToSupplierDate: null, // Initially null
-                status: 'Not Returned Yet'
+                status: 'Not Returned Yet',
+                returnedToSupplierDate: null
             };
 
             console.log('Saving return payload:', returnToSave);
 
-            await axios.post('http://localhost:8081/api/returns', returnToSave);
+            const response = await axios.post(`${BASE_URL}/api/returns`, returnToSave, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log('Return recorded successfully:', response.data);
             fetchReturns();
             handleCloseDialog();
         } catch (error) {
-            console.error('Error saving return:', error);
-            setErrors({ general: 'Failed to save return' });
+            const errorMessage = error.response
+                ? `Status ${error.response.status}: ${error.response.data.message || error.response.statusText || 'Bad Request'}`
+                : `Network Error: ${error.message}`;
+            console.error('Error saving return:', errorMessage);
+            setErrors({ general: `Failed to save return: ${errorMessage}` });
         }
     };
 
     const handleMarkReturned = async (id) => {
         try {
             const today = new Date().toISOString().split('T')[0];
-            await axios.put(`http://localhost:8081/api/returns/${id}`, { returnedToSupplierDate: today, status: 'Returned' });
+            await axios.put(`${BASE_URL}/api/returns/${id}`, { returnedToSupplierDate: today, status: 'Returned' }, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log('Return marked as returned');
             fetchReturns();
         } catch (error) {
-            console.error('Error marking return:', error);
+            console.error('Error marking return:', error.message);
         }
     };
 
@@ -166,7 +216,7 @@ const ReturnManagement = () => {
                         value={searchTerm}
                         onChange={handleSearch}
                         sx={{ width: '300px' }}
-                        placeholder="Search by ID, supplier, brand, reason"
+                        placeholder="Search by ID, brand, supplier, reason, status"
                     />
                     <Button variant="contained" color="primary" onClick={handleOpenDialog} className="action-button">
                         Record New Return
@@ -178,8 +228,8 @@ const ReturnManagement = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Product ID</TableCell>
-                                <TableCell>Supplier Name</TableCell>
                                 <TableCell>Brand Name</TableCell>
+                                <TableCell>Supplier Name</TableCell>
                                 <TableCell>Purchase Price</TableCell>
                                 <TableCell>Reason for Return</TableCell>
                                 <TableCell>Return Date</TableCell>
@@ -192,16 +242,21 @@ const ReturnManagement = () => {
                             {filteredReturns.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>{item.productId}</TableCell>
-                                    <TableCell>{item.supplierName}</TableCell>
                                     <TableCell>{item.brandName}</TableCell>
-                                    <TableCell>{item.purchasePrice}</TableCell>
+                                    <TableCell>{item.supplierName}</TableCell>
+                                    <TableCell>{item.purchasePrice.toFixed(2)}</TableCell>
                                     <TableCell>{item.reasonForReturn}</TableCell>
                                     <TableCell>{item.returnDate}</TableCell>
                                     <TableCell>{item.returnedToSupplierDate || 'N/A'}</TableCell>
                                     <TableCell>{item.status}</TableCell>
                                     <TableCell>
                                         {item.status === 'Not Returned Yet' && (
-                                            <Button variant="contained" color="primary" onClick={() => handleMarkReturned(item.id)} className="action-button">
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => handleMarkReturned(item.id)}
+                                                className="action-button"
+                                            >
                                                 Mark Returned
                                             </Button>
                                         )}
@@ -215,12 +270,71 @@ const ReturnManagement = () => {
                 <Dialog open={openDialog} onClose={handleCloseDialog} className="dialog">
                     <DialogTitle>Record New Return</DialogTitle>
                     <DialogContent>
-                        <TextField fullWidth margin="normal" label="Product ID" name="productId" value={currentReturn.productId} onChange={handleInputChange} error={!!errors.productId} helperText={errors.productId} required />
-                        <TextField fullWidth margin="normal" label="Supplier Name" name="supplierName" value={currentReturn.supplierName} disabled />
-                        <TextField fullWidth margin="normal" label="Brand Name" name="brandName" value={currentReturn.brandName} disabled />
-                        <TextField fullWidth margin="normal" label="Purchase Price" name="purchasePrice" value={currentReturn.purchasePrice} disabled type="number" />
-                        <TextField fullWidth margin="normal" label="Reason for Return" name="reasonForReturn" value={currentReturn.reasonForReturn} onChange={handleInputChange} error={!!errors.reasonForReturn} helperText={errors.reasonForReturn} required multiline rows={3} />
-                        <TextField fullWidth margin="normal" label="Return Date" name="returnDate" value={currentReturn.returnDate} onChange={handleInputChange} error={!!errors.returnDate} helperText={errors.returnDate} required type="date" InputLabelProps={{ shrink: true }} />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Product ID"
+                            name="productId"
+                            value={currentReturn.productId}
+                            onChange={handleInputChange}
+                            error={!!errors.productId}
+                            helperText={errors.productId || 'Enter a valid Product ID (e.g., 001SHO)'}
+                            required
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Brand Name"
+                            name="brandName"
+                            value={currentReturn.brandName}
+                            disabled
+                            helperText="Auto-filled from product"
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Supplier Name"
+                            name="supplierName"
+                            value={currentReturn.supplierName}
+                            disabled
+                            helperText="Auto-filled from product"
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Purchase Price"
+                            name="purchasePrice"
+                            value={currentReturn.purchasePrice}
+                            disabled
+                            type="number"
+                            helperText="Auto-filled from product"
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Reason for Return"
+                            name="reasonForReturn"
+                            value={currentReturn.reasonForReturn}
+                            onChange={handleInputChange}
+                            error={!!errors.reasonForReturn}
+                            helperText={errors.reasonForReturn}
+                            required
+                            multiline
+                            rows={3}
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="Return Date"
+                            name="returnDate"
+                            value={currentReturn.returnDate}
+                            onChange={handleInputChange}
+                            error={!!errors.returnDate}
+                            helperText={errors.returnDate}
+                            required
+                            type="date"
+                            InputLabelProps={{ shrink: true }}
+                        />
                         {errors.general && <Typography color="error">{errors.general}</Typography>}
                     </DialogContent>
                     <DialogActions>
