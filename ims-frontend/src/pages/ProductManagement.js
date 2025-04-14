@@ -11,7 +11,10 @@ const ProductManagement = () => {
     const [products, setProducts] = useState([]);
     const [filteredProducts, setFilteredProducts] = useState([]);
     const [openDialog, setOpenDialog] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
     const [currentProduct, setCurrentProduct] = useState({
+        id: null,
+        productId: '',
         productName: '',
         purchaseDate: '',
         purchasePrice: '',
@@ -70,7 +73,6 @@ const ProductManagement = () => {
         const { name, value } = e.target;
         setCurrentProduct({ ...currentProduct, [name]: value });
         setErrors({ ...errors, [name]: '' });
-        // Reset categoryDetails when category changes
         if (name === 'category') {
             setCurrentProduct(prev => ({ ...prev, categoryDetails: {} }));
         }
@@ -95,7 +97,6 @@ const ProductManagement = () => {
             newErrors.sellingPrice = 'Selling Price must be a positive number';
         }
         if (!currentProduct.category) newErrors.category = 'Category is required';
-        // Validate categoryDetails for shoes
         if (currentProduct.category === 'shoes') {
             if (!currentProduct.categoryDetails.shoeSize) newErrors.shoeSize = 'Shoe Size is required';
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
@@ -104,40 +105,34 @@ const ProductManagement = () => {
             if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
             if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
         }
-        // Validate categoryDetails for slippers
         if (currentProduct.category === 'slippers') {
             if (!currentProduct.categoryDetails.slipperSize) newErrors.slipperSize = 'Slipper Size is required';
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
             if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
         }
-        // Validate categoryDetails for bags
         if (currentProduct.category === 'bags') {
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
             if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
             if (!currentProduct.categoryDetails.gender) newErrors.gender = 'Gender is required';
         }
-        // Validate categoryDetails for water bottle
         if (currentProduct.category === 'water bottle') {
             if (!currentProduct.categoryDetails.bottleSize) newErrors.bottleSize = 'Bottle Size is required';
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
             if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
         }
-        // Validate categoryDetails for shoe polish
         if (currentProduct.category === 'shoe polish') {
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
         }
-        // Validate categoryDetails for socks
         if (currentProduct.category === 'socks') {
             if (!currentProduct.categoryDetails.sockSize) newErrors.sockSize = 'Sock Size is required';
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.color) newErrors.color = 'Color is required';
             if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
         }
-        // Validate categoryDetails for other accessories
         if (currentProduct.category === 'other accessories') {
             if (!currentProduct.categoryDetails.brandName) newErrors.brandName = 'Brand Name is required';
             if (!currentProduct.categoryDetails.type) newErrors.type = 'Type is required';
@@ -146,22 +141,41 @@ const ProductManagement = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleOpenDialog = () => {
-        setCurrentProduct({
-            productName: '',
-            purchaseDate: '',
-            purchasePrice: '',
-            sellingPrice: '',
-            category: '',
-            inStock: true,
-            categoryDetails: {}
-        });
+    const handleOpenDialog = (product = null) => {
+        if (product) {
+            setCurrentProduct({
+                id: product.id,
+                productId: product.productId,
+                productName: product.productName,
+                purchaseDate: product.purchaseDate,
+                purchasePrice: product.purchasePrice.toString(),
+                sellingPrice: product.sellingPrice.toString(),
+                category: product.category,
+                inStock: product.inStock,
+                categoryDetails: product.categoryDetails || {}
+            });
+            setIsEditMode(true);
+        } else {
+            setCurrentProduct({
+                id: null,
+                productId: '',
+                productName: '',
+                purchaseDate: '',
+                purchasePrice: '',
+                sellingPrice: '',
+                category: '',
+                inStock: true,
+                categoryDetails: {}
+            });
+            setIsEditMode(false);
+        }
         setErrors({});
         setOpenDialog(true);
     };
 
     const handleCloseDialog = () => {
         setOpenDialog(false);
+        setIsEditMode(false);
         setErrors({});
     };
 
@@ -173,6 +187,7 @@ const ProductManagement = () => {
 
         try {
             const productToSave = {
+                productId: isEditMode ? currentProduct.productId : undefined,
                 productName: currentProduct.productName,
                 purchaseDate: currentProduct.purchaseDate,
                 purchasePrice: parseFloat(currentProduct.purchasePrice),
@@ -184,10 +199,17 @@ const ProductManagement = () => {
 
             console.log('Saving product payload:', productToSave);
 
-            const response = await axios.post(`${BASE_URL}/api/products`, productToSave, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            console.log('Create response:', response.data);
+            if (isEditMode) {
+                const response = await axios.put(`${BASE_URL}/api/products/${currentProduct.id}`, productToSave, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('Update response:', response.data);
+            } else {
+                const response = await axios.post(`${BASE_URL}/api/products`, productToSave, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                console.log('Create response:', response.data);
+            }
             fetchProducts();
             handleCloseDialog();
         } catch (error) {
@@ -196,6 +218,25 @@ const ProductManagement = () => {
                 : `Network Error: ${error.message}`;
             console.error('Error saving product:', errorMessage);
             setErrors({ general: `Failed to save product: ${errorMessage}` });
+        }
+    };
+
+    const handleDeleteProduct = async (id) => {
+        if (!window.confirm('Are you sure you want to delete this product?')) {
+            return;
+        }
+        try {
+            await axios.delete(`${BASE_URL}/api/products/${id}`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            console.log('Product deleted:', id);
+            fetchProducts();
+        } catch (error) {
+            const errorMessage = error.response
+                ? `Status ${error.response.status}: ${error.response.data.message || JSON.stringify(error.response.data) || 'Bad Request'}`
+                : `Network Error: ${error.message}`;
+            console.error('Error deleting product:', errorMessage);
+            setErrors({ general: `Failed to delete product: ${errorMessage}` });
         }
     };
 
@@ -254,7 +295,7 @@ const ProductManagement = () => {
                     <Button
                         variant="contained"
                         color="primary"
-                        onClick={handleOpenDialog}
+                        onClick={() => handleOpenDialog()}
                         className="action-button"
                     >
                         Add New Product
@@ -272,6 +313,7 @@ const ProductManagement = () => {
                                 <TableCell>Selling Price</TableCell>
                                 <TableCell>Category</TableCell>
                                 <TableCell>Stock Status</TableCell>
+                                <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -284,6 +326,25 @@ const ProductManagement = () => {
                                     <TableCell>{item.sellingPrice.toFixed(2)}</TableCell>
                                     <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
                                     <TableCell>{item.inStock ? 'In Stock' : 'Out of Stock'}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            variant="contained"
+                                            color="secondary"
+                                            onClick={() => handleOpenDialog(item)}
+                                            sx={{ mr: 1 }}
+                                            className="action-button"
+                                        >
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="error"
+                                            onClick={() => handleDeleteProduct(item.id)}
+                                            className="action-button"
+                                        >
+                                            Delete
+                                        </Button>
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -291,7 +352,7 @@ const ProductManagement = () => {
                 </TableContainer>
 
                 <Dialog open={openDialog} onClose={handleCloseDialog} className="dialog">
-                    <DialogTitle>Add New Product</DialogTitle>
+                    <DialogTitle>{isEditMode ? 'Edit Product' : 'Add New Product'}</DialogTitle>
                     <DialogContent>
                         <TextField
                             fullWidth
@@ -727,7 +788,9 @@ const ProductManagement = () => {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleCloseDialog} className="dialog-button">Cancel</Button>
-                        <Button onClick={handleSaveProduct} color="primary" className="dialog-button">Save</Button>
+                        <Button onClick={handleSaveProduct} color="primary" className="dialog-button">
+                            {isEditMode ? 'Update' : 'Save'}
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </Box>

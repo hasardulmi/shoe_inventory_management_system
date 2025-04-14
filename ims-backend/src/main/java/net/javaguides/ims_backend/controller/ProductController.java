@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
@@ -50,6 +51,32 @@ public class ProductController {
             return ResponseEntity.badRequest().body(new ErrorResponse("Validation error: " + e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(new ErrorResponse("Failed to save product: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        try {
+            Optional<Product> updatedProduct = productService.updateProduct(id, product);
+            return updatedProduct.map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Validation error: " + e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(new ErrorResponse("Failed to update product: " + e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
+        try {
+            boolean deleted = productService.deleteProduct(id);
+            if (deleted) {
+                return ResponseEntity.ok().build();
+            }
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(new ErrorResponse("Failed to delete product: " + e.getMessage()));
         }
     }
 }
