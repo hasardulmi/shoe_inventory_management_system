@@ -1,4 +1,5 @@
 // src/main/java/net/javaguides/ims_backend/config/SecurityConfig.java
+// (No changes needed)
 package net.javaguides.ims_backend.config;
 
 import org.springframework.context.annotation.Bean;
