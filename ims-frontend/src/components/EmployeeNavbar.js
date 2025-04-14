@@ -11,8 +11,13 @@ const EmployeeNavbar = () => {
                     Employee Dashboard
                 </Typography>
                 <Button color="inherit" component={Link} to="/employee-sales-report">
-                    Sales Report
+                    Sales
                 </Button>
+                <Button color="inherit" component={Link} to="/employee-return">
+                    Return
+                </Button>
+
+
 
                 {/* Add other navigation items as needed */}
                 <Button color="inherit" component={Link} to="/">
