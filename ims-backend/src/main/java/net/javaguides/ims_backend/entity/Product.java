@@ -12,11 +12,17 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id", unique = true, nullable = false)
+    @Column(name = "product_id", nullable = false, unique = true)
     private String productId;
 
     @Column(name = "product_name", nullable = false)
     private String productName;
+
+    @Column(name = "supplier_name")
+    private String supplierName;
+
+    @Column(name = "brand_name")
+    private String brandName;
 
     @Column(name = "purchase_date", nullable = false)
     private LocalDate purchaseDate;
@@ -30,8 +36,8 @@ public class Product {
     @Column(name = "category", nullable = false)
     private String category;
 
-    @Column(name = "in_stock")
-    private Boolean inStock;
+    @Column(name = "in_stock", nullable = false)
+    private boolean inStock;
 
     @Column(name = "category_details")
     private String categoryDetails;
@@ -39,18 +45,16 @@ public class Product {
     @Column(name = "status", nullable = false)
     private String status;
 
-    @Column(name = "supplier_name", nullable = true)
-    private String supplierName;
-
-    @Column(name = "brand_name", nullable = true)
-    private String brandName;
-
     // Constructors
     public Product() {}
 
-    public Product(String productId, String productName, LocalDate purchaseDate, BigDecimal purchasePrice, BigDecimal sellingPrice, String category, Boolean inStock, String categoryDetails, String status, String supplierName, String brandName) {
+    public Product(String productId, String productName, String supplierName, String brandName,
+                   LocalDate purchaseDate, BigDecimal purchasePrice, BigDecimal sellingPrice,
+                   String category, boolean inStock, String categoryDetails, String status) {
         this.productId = productId;
         this.productName = productName;
+        this.supplierName = supplierName;
+        this.brandName = brandName;
         this.purchaseDate = purchaseDate;
         this.purchasePrice = purchasePrice;
         this.sellingPrice = sellingPrice;
@@ -58,8 +62,6 @@ public class Product {
         this.inStock = inStock;
         this.categoryDetails = categoryDetails;
         this.status = status;
-        this.supplierName = supplierName;
-        this.brandName = brandName;
     }
 
     // Getters and Setters
@@ -71,6 +73,12 @@ public class Product {
 
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
+
+    public String getSupplierName() { return supplierName; }
+    public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
+
+    public String getBrandName() { return brandName; }
+    public void setBrandName(String brandName) { this.brandName = brandName; }
 
     public LocalDate getPurchaseDate() { return purchaseDate; }
     public void setPurchaseDate(LocalDate purchaseDate) { this.purchaseDate = purchaseDate; }
@@ -84,18 +92,12 @@ public class Product {
     public String getCategory() { return category; }
     public void setCategory(String category) { this.category = category; }
 
-    public Boolean getInStock() { return inStock; }
-    public void setInStock(Boolean inStock) { this.inStock = inStock; }
+    public boolean getInStock() { return inStock; }
+    public void setInStock(boolean inStock) { this.inStock = inStock; }
 
     public String getCategoryDetails() { return categoryDetails; }
     public void setCategoryDetails(String categoryDetails) { this.categoryDetails = categoryDetails; }
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
-
-    public String getSupplierName() { return supplierName; }
-    public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
-
-    public String getBrandName() { return brandName; }
-    public void setBrandName(String brandName) { this.brandName = brandName; }
 }

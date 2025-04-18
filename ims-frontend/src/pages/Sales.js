@@ -277,7 +277,9 @@ const Sales = () => {
                             {filteredSales.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell>{item.productId}</TableCell>
-                                    <TableCell>{item.salePrice.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : item.salePrice.toFixed(2)}
+                                    </TableCell>
                                     <TableCell>{item.discount ? (item.discount * 100).toFixed(0) : '0'}</TableCell>
                                     <TableCell>
                                         {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : products[item.productId]?.sellingPrice?.toFixed(2) || 'N/A'}

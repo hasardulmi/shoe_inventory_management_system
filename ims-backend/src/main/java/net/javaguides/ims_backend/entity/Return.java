@@ -1,7 +1,6 @@
 package net.javaguides.ims_backend.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Entity
@@ -15,39 +14,23 @@ public class Return {
     @Column(name = "product_id", nullable = false)
     private String productId;
 
-    @Column(name = "brand_name", nullable = false)
-    private String brandName;
-
-    @Column(name = "purchase_price", nullable = false)
-    private BigDecimal purchasePrice;
-
-    @Column(name = "reason_for_return", nullable = false)
-    private String reasonForReturn;
-
     @Column(name = "return_date", nullable = false)
     private LocalDate returnDate;
 
-    @Column(name = "status", nullable = false)
-    private String status;
+    @Column(name = "returned_date")
+    private LocalDate returnedDate;
 
-    @Column(name = "returned_to_supplier_date")
-    private LocalDate returnedToSupplierDate;
-
-    @Column(name = "supplier_name")
-    private String supplierName;
+    @Column(name = "reason", nullable = false)
+    private String reason;
 
     // Constructors
     public Return() {}
 
-    public Return(String productId, String brandName, BigDecimal purchasePrice, String reasonForReturn, LocalDate returnDate, String status, LocalDate returnedToSupplierDate, String supplierName) {
+    public Return(String productId, LocalDate returnDate, LocalDate returnedDate, String reason) {
         this.productId = productId;
-        this.brandName = brandName;
-        this.purchasePrice = purchasePrice;
-        this.reasonForReturn = reasonForReturn;
         this.returnDate = returnDate;
-        this.status = status;
-        this.returnedToSupplierDate = returnedToSupplierDate;
-        this.supplierName = supplierName;
+        this.returnedDate = returnedDate;
+        this.reason = reason;
     }
 
     // Getters and Setters
@@ -57,24 +40,13 @@ public class Return {
     public String getProductId() { return productId; }
     public void setProductId(String productId) { this.productId = productId; }
 
-    public String getBrandName() { return brandName; }
-    public void setBrandName(String brandName) { this.brandName = brandName; }
-
-    public BigDecimal getPurchasePrice() { return purchasePrice; }
-    public void setPurchasePrice(BigDecimal purchasePrice) { this.purchasePrice = purchasePrice; }
-
-    public String getReasonForReturn() { return reasonForReturn; }
-    public void setReasonForReturn(String reasonForReturn) { this.reasonForReturn = reasonForReturn; }
-
+    // Getters and setters for returnDate and returnedDate
     public LocalDate getReturnDate() { return returnDate; }
     public void setReturnDate(LocalDate returnDate) { this.returnDate = returnDate; }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public LocalDate getReturnedDate() { return returnedDate; }
+    public void setReturnedDate(LocalDate returnedDate) { this.returnedDate = returnedDate; }
 
-    public LocalDate getReturnedToSupplierDate() { return returnedToSupplierDate; }
-    public void setReturnedToSupplierDate(LocalDate returnedToSupplierDate) { this.returnedToSupplierDate = returnedToSupplierDate; }
-
-    public String getSupplierName() { return supplierName; }
-    public void setSupplierName(String supplierName) { this.supplierName = supplierName; }
+    public String getReason() { return reason; }
+    public void setReason(String reason) { this.reason = reason; }
 }

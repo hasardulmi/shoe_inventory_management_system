@@ -4,6 +4,7 @@ import net.javaguides.ims_backend.entity.Product;
 import net.javaguides.ims_backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -86,6 +87,15 @@ public class ProductService {
         existingProduct.setBrandName(product.getBrandName());
 
         return productRepository.save(existingProduct);
+    }
+
+    public Product markProductAsReturned(String productId) {
+        Product product = getProductByProductId(productId);
+        if (product.getStatus().equals("RETURNED")) {
+            throw new IllegalArgumentException("Product is already returned");
+        }
+        product.setStatus("RETURNED");
+        return productRepository.save(product);
     }
 
     public void deleteProduct(Long id) {

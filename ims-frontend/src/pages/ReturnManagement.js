@@ -6,14 +6,32 @@ import {
 import OwnerNavbar from '../components/OwnerNavbar';
 import './styles.css';
 
+// Utility function to format date to dd/mm/yyyy
+const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+};
+
+// Utility function to get current date in yyyy-mm-dd
+const getCurrentDateISO = () => {
+    return new Date().toISOString().split('T')[0];
+};
+
 const ReturnManagement = () => {
     const [returns, setReturns] = useState([]);
     const [products, setProducts] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [newReturn, setNewReturn] = useState({
         productId: '',
-        returnDate: new Date().toISOString().split('T')[0], // Set default to current date
-        reason: ''
+        returnDate: getCurrentDateISO(),
+        returnedDate: null,
+        reason: '',
+        purchasePrice: null,
+        supplierName: '',
+        brandName: ''
     });
     const [error, setError] = useState('');
     const BASE_URL = 'http://localhost:8080';
@@ -31,6 +49,7 @@ const ReturnManagement = () => {
             setReturns(response.data);
         } catch (error) {
             console.error('Error fetching returns:', error.message);
+            setError('Failed to fetch returns');
         }
     };
 
@@ -46,6 +65,7 @@ const ReturnManagement = () => {
             setProducts(productMap);
         } catch (error) {
             console.error('Error fetching products:', error.message);
+            setError('Failed to fetch products');
         }
     };
 
@@ -60,44 +80,88 @@ const ReturnManagement = () => {
 
         if (name === 'productId' && value) {
             try {
-                await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`, {
+                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`, {
                     headers: { 'Content-Type': 'application/json' }
                 });
+                const product = response.data;
+                if (product.status === 'RETURNED') {
+                    setError('Product is already returned');
+                    setNewReturn(prev => ({
+                        ...prev,
+                        purchasePrice: null,
+                        supplierName: '',
+                        brandName: ''
+                    }));
+                } else {
+                    setNewReturn(prev => ({
+                        ...prev,
+                        purchasePrice: product.purchasePrice,
+                        supplierName: product.supplierName || '',
+                        brandName: product.brandName || '',
+                        returnDate: getCurrentDateISO()
+                    }));
+                }
             } catch (error) {
                 setError('Product not found');
+                setNewReturn(prev => ({
+                    ...prev,
+                    purchasePrice: null,
+                    supplierName: '',
+                    brandName: ''
+                }));
             }
         }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!newReturn.productId || !newReturn.returnDate || !newReturn.reason) {
+        if (!newReturn.productId || !newReturn.returnDate || !newReturn.reason || !newReturn.purchasePrice) {
             setError('Please fill all required fields');
             return;
         }
         try {
             const returnData = {
                 productId: newReturn.productId,
-                returnDate: newReturn.returnDate || new Date().toISOString().split('T')[0],
+                returnDate: newReturn.returnDate,
+                returnedDate: null,
                 reason: newReturn.reason
             };
             await axios.post(`${BASE_URL}/api/returns`, returnData, {
                 headers: { 'Content-Type': 'application/json' }
             });
-            // Update product status to RETURNED
-            await axios.put(`${BASE_URL}/api/products/by-product-id/${newReturn.productId}/return`, {}, {
-                headers: { 'Content-Type': 'application/json' }
-            });
             setNewReturn({
                 productId: '',
-                returnDate: new Date().toISOString().split('T')[0],
-                reason: ''
+                returnDate: getCurrentDateISO(),
+                returnedDate: null,
+                reason: '',
+                purchasePrice: null,
+                supplierName: '',
+                brandName: ''
             });
             setError('');
             fetchReturns();
             fetchProducts();
         } catch (error) {
-            setError(error.response?.data?.message || 'Failed to create return');
+            setError(error.response?.data || 'Failed to create return');
+        }
+    };
+
+    const handleMarkAsReturned = async (returnId, productId) => {
+        try {
+            await axios.put(`${BASE_URL}/api/returns/${returnId}/mark-returned`, {
+                returnedDate: getCurrentDateISO()
+            }, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            // Update product status to RETURNED
+            await axios.put(`${BASE_URL}/api/products/by-product-id/${productId}/return`, {}, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            setError('');
+            fetchReturns();
+            fetchProducts();
+        } catch (error) {
+            setError(error.response?.data || 'Failed to mark as returned');
         }
     };
 
@@ -121,7 +185,7 @@ const ReturnManagement = () => {
                     </Typography>
                     <form onSubmit={handleSubmit}>
                         <Grid container spacing={2}>
-                            <Grid item xs={12} sm={4}>
+                            <Grid item xs={12} sm={3}>
                                 <TextField
                                     label="Product ID"
                                     name="productId"
@@ -129,21 +193,42 @@ const ReturnManagement = () => {
                                     onChange={handleInputChange}
                                     fullWidth
                                     required
+                                    placeholder="e.g., S00001"
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={4}>
+                            <Grid item xs={12} sm={3}>
+                                <TextField
+                                    label="Purchase Price"
+                                    value={newReturn.purchasePrice ? newReturn.purchasePrice.toFixed(2) : ''}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <TextField
+                                    label="Supplier Name"
+                                    value={newReturn.supplierName}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <TextField
+                                    label="Brand Name"
+                                    value={newReturn.brandName}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
                                 <TextField
                                     label="Return Date"
-                                    name="returnDate"
-                                    type="date"
-                                    value={newReturn.returnDate}
-                                    onChange={handleInputChange}
+                                    value={formatDate(newReturn.returnDate)}
                                     fullWidth
-                                    required
-                                    InputLabelProps={{ shrink: true }}
+                                    disabled
                                 />
                             </Grid>
-                            <Grid item xs={12} sm={4}>
+                            <Grid item xs={12} sm={3}>
                                 <TextField
                                     label="Reason"
                                     name="reason"
@@ -179,8 +264,13 @@ const ReturnManagement = () => {
                             <TableRow>
                                 <TableCell>Product ID</TableCell>
                                 <TableCell>Product Name</TableCell>
+                                <TableCell>Purchase Price</TableCell>
+                                <TableCell>Supplier Name</TableCell>
+                                <TableCell>Brand Name</TableCell>
                                 <TableCell>Return Date</TableCell>
+                                <TableCell>Returned Date</TableCell>
                                 <TableCell>Reason</TableCell>
+                                <TableCell>Action</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -190,8 +280,22 @@ const ReturnManagement = () => {
                                     <TableRow key={item.id}>
                                         <TableCell>{item.productId}</TableCell>
                                         <TableCell>{products[item.productId]?.productName || 'N/A'}</TableCell>
-                                        <TableCell>{item.returnDate}</TableCell>
+                                        <TableCell>{products[item.productId]?.purchasePrice?.toFixed(2) || 'N/A'}</TableCell>
+                                        <TableCell>{products[item.productId]?.supplierName || 'N/A'}</TableCell>
+                                        <TableCell>{products[item.productId]?.brandName || 'N/A'}</TableCell>
+                                        <TableCell>{formatDate(item.returnDate)}</TableCell>
+                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'N/A'}</TableCell>
                                         <TableCell>{item.reason}</TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="contained"
+                                                color="secondary"
+                                                onClick={() => handleMarkAsReturned(item.id, item.productId)}
+                                                disabled={item.returnedDate !== null}
+                                            >
+                                                Mark as Returned
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                         </TableBody>

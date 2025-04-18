@@ -69,6 +69,20 @@ public class ProductController {
         }
     }
 
+    @PutMapping("/by-product-id/{productId}/return")
+    public ResponseEntity<?> markProductAsReturned(@PathVariable String productId) {
+        try {
+            Product updatedProduct = productService.markProductAsReturned(productId);
+            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {

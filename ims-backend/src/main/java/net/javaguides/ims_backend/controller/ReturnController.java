@@ -2,68 +2,49 @@ package net.javaguides.ims_backend.controller;
 
 import net.javaguides.ims_backend.entity.Return;
 import net.javaguides.ims_backend.service.ReturnService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/returns")
 @CrossOrigin(origins = "http://localhost:3000")
 public class ReturnController {
 
-    private static final Logger logger = LoggerFactory.getLogger(ReturnController.class);
-
     @Autowired
     private ReturnService returnService;
 
     @GetMapping
     public ResponseEntity<List<Return>> getAllReturns() {
-        try {
-            List<Return> returns = returnService.getAllReturns();
-            return ResponseEntity.ok(returns);
-        } catch (Exception e) {
-            logger.error("Failed to fetch returns: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(null);
-        }
+        List<Return> returns = returnService.getAllReturns();
+        return new ResponseEntity<>(returns, HttpStatus.OK);
     }
 
     @PostMapping
     public ResponseEntity<?> createReturn(@RequestBody Return returnEntity) {
         try {
-            logger.info("Received return payload: {}", returnEntity);
-            Return savedReturn = returnService.createReturn(returnEntity);
-            logger.info("Return saved successfully: {}", savedReturn);
-            return ResponseEntity.status(201).body(savedReturn);
+            Return createdReturn = returnService.createReturn(returnEntity);
+            return new ResponseEntity<>(createdReturn, HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
-            logger.warn("Validation error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            logger.error("Failed to save return: {}", e.getMessage(), e);
-            return ResponseEntity.badRequest().body("Failed to save return: " + e.getMessage());
+            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<?> updateReturn(@PathVariable Long id, @RequestBody Return returnDetails) {
+    @PutMapping("/{returnId}/mark-returned")
+    public ResponseEntity<?> markReturnAsCompleted(@PathVariable Long returnId, @RequestBody Return returnEntity) {
         try {
-            Optional<Return> updatedReturn = returnService.updateReturn(id, returnDetails);
-            if (!updatedReturn.isPresent()) {
-                logger.warn("Return ID {} not found", id);
-                return ResponseEntity.status(404).body("Return not found");
-            }
-            logger.info("Return ID {} updated successfully: {}", id, updatedReturn.get());
-            return ResponseEntity.ok(updatedReturn.get());
+            Return updatedReturn = returnService.markReturnAsCompleted(returnId, returnEntity.getReturnedDate());
+            return new ResponseEntity<>(updatedReturn, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
-            logger.warn("Validation error: {}", e.getMessage());
-            return ResponseEntity.badRequest().body("Validation error: " + e.getMessage());
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            logger.error("Failed to update return ID {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.badRequest().body("Failed to update return: " + e.getMessage());
+            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
