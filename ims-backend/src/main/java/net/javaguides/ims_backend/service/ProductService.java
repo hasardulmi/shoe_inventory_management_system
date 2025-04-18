@@ -1,11 +1,10 @@
-// src/main/java/net/javaguides/ims_backend/service/ProductService.java
 package net.javaguides.ims_backend.service;
 
 import net.javaguides.ims_backend.entity.Product;
 import net.javaguides.ims_backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,132 +18,78 @@ public class ProductService {
         return productRepository.findAll();
     }
 
+    public Product getProductById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+    }
+
     public Product getProductByProductId(String productId) {
-        return productRepository.findByProductId(productId);
+        return productRepository.findByProductId(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found with productId: " + productId));
     }
 
     public Product createProduct(Product product) {
+        // Validate productId uniqueness
+        if (product.getProductId() == null || product.getProductId().isEmpty()) {
+            throw new IllegalArgumentException("Product ID is required");
+        }
+        Optional<Product> existingProduct = productRepository.findByProductId(product.getProductId());
+        if (existingProduct.isPresent()) {
+            throw new IllegalArgumentException("Product ID already exists: " + product.getProductId());
+        }
+
         // Validate required fields
-        if (product.getProductName() == null || product.getProductName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Product Name is required");
+        if (product.getProductName() == null || product.getProductName().isEmpty()) {
+            throw new IllegalArgumentException("Product name is required");
         }
-        if (product.getPurchasePrice() == null || product.getPurchasePrice() <= 0) {
-            throw new IllegalArgumentException("Valid Purchase Price is required");
+        if (product.getPurchaseDate() == null) {
+            throw new IllegalArgumentException("Purchase date is required");
         }
-        if (product.getSellingPrice() == null || product.getSellingPrice() <= 0) {
-            throw new IllegalArgumentException("Valid Selling Price is required");
+        if (product.getPurchasePrice() == null || product.getPurchasePrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valid purchase price is required");
         }
-        if (product.getCategory() == null || product.getCategory().trim().isEmpty()) {
+        if (product.getSellingPrice() == null || product.getSellingPrice().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Valid selling price is required");
+        }
+        if (product.getCategory() == null || product.getCategory().isEmpty()) {
             throw new IllegalArgumentException("Category is required");
         }
-        if (product.getPurchaseDate() == null || product.getPurchaseDate().trim().isEmpty()) {
-            throw new IllegalArgumentException("Purchase Date is required");
+        if (product.getStatus() == null || product.getStatus().isEmpty()) {
+            product.setStatus("ACTIVE"); // Default status
         }
-        // Set defaults
-        if (product.getInStock() == null) {
-            product.setInStock(true);
-        }
-        // Validate categoryDetails
-        if (product.getCategoryDetails() != null && !product.getCategoryDetails().trim().isEmpty()) {
-            try {
-                new org.json.JSONObject(product.getCategoryDetails());
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Category Details must be valid JSON");
-            }
-        }
-        // Generate unique productId
-        String categoryAbbr;
-        switch (product.getCategory().toLowerCase()) {
-            case "shoes":
-                categoryAbbr = "SHO";
-                break;
-            case "water bottle":
-                categoryAbbr = "BOT";
-                break;
-            case "bags":
-                categoryAbbr = "BAG";
-                break;
-            case "slippers":
-                categoryAbbr = "SLP";
-                break;
-            case "shoe polish":
-                categoryAbbr = "POL";
-                break;
-            case "socks":
-                categoryAbbr = "SOC";
-                break;
-            case "other accessories":
-                categoryAbbr = "ACC";
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid category");
-        }
-        // Find next available number
-        int number = 1;
-        String productId;
-        do {
-            productId = String.format("%03d%s", number, categoryAbbr);
-            number++;
-        } while (productRepository.findByProductId(productId) != null);
-        product.setProductId(productId);
 
         return productRepository.save(product);
     }
 
-    public Optional<Product> updateProduct(Long id, Product product) {
-        Optional<Product> existingProduct = productRepository.findById(id);
-        if (!existingProduct.isPresent()) {
-            return Optional.empty();
-        }
-        Product updatedProduct = existingProduct.get();
+    public Product updateProduct(Long id, Product product) {
+        Product existingProduct = getProductById(id);
 
-        // Validate required fields
-        if (product.getProductName() == null || product.getProductName().trim().isEmpty()) {
-            throw new IllegalArgumentException("Product Name is required");
-        }
-        if (product.getPurchasePrice() == null || product.getPurchasePrice() <= 0) {
-            throw new IllegalArgumentException("Valid Purchase Price is required");
-        }
-        if (product.getSellingPrice() == null || product.getSellingPrice() <= 0) {
-            throw new IllegalArgumentException("Valid Selling Price is required");
-        }
-        if (product.getCategory() == null || product.getCategory().trim().isEmpty()) {
-            throw new IllegalArgumentException("Category is required");
-        }
-        if (product.getPurchaseDate() == null || product.getPurchaseDate().trim().isEmpty()) {
-            throw new IllegalArgumentException("Purchase Date is required");
-        }
-        // Validate categoryDetails
-        if (product.getCategoryDetails() != null && !product.getCategoryDetails().trim().isEmpty()) {
-            try {
-                new org.json.JSONObject(product.getCategoryDetails());
-            } catch (Exception e) {
-                throw new IllegalArgumentException("Category Details must be valid JSON");
+        // Validate productId uniqueness (if changed)
+        if (!existingProduct.getProductId().equals(product.getProductId())) {
+            Optional<Product> productWithId = productRepository.findByProductId(product.getProductId());
+            if (productWithId.isPresent()) {
+                throw new IllegalArgumentException("Product ID already exists: " + product.getProductId());
             }
         }
 
         // Update fields
-        updatedProduct.setProductName(product.getProductName());
-        updatedProduct.setPurchaseDate(product.getPurchaseDate());
-        updatedProduct.setPurchasePrice(product.getPurchasePrice());
-        updatedProduct.setSellingPrice(product.getSellingPrice());
-        updatedProduct.setCategory(product.getCategory());
-        updatedProduct.setInStock(product.getInStock() != null ? product.getInStock() : true);
-        updatedProduct.setCategoryDetails(product.getCategoryDetails());
+        existingProduct.setProductId(product.getProductId());
+        existingProduct.setProductName(product.getProductName());
+        existingProduct.setPurchaseDate(product.getPurchaseDate());
+        existingProduct.setPurchasePrice(product.getPurchasePrice());
+        existingProduct.setSellingPrice(product.getSellingPrice());
+        existingProduct.setCategory(product.getCategory());
+        existingProduct.setInStock(product.getInStock());
+        existingProduct.setCategoryDetails(product.getCategoryDetails());
+        existingProduct.setStatus(product.getStatus());
+        existingProduct.setSupplierName(product.getSupplierName());
+        existingProduct.setBrandName(product.getBrandName());
 
-        // ProductId remains unchanged
-        if (product.getProductId() != null && !product.getProductId().equals(updatedProduct.getProductId())) {
-            throw new IllegalArgumentException("Product ID cannot be changed");
-        }
-
-        return Optional.of(productRepository.save(updatedProduct));
+        return productRepository.save(existingProduct);
     }
 
-    public boolean deleteProduct(Long id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-            return true;
-        }
-        return false;
+    public void deleteProduct(Long id) {
+        Product product = getProductById(id);
+        productRepository.delete(product);
     }
 }
