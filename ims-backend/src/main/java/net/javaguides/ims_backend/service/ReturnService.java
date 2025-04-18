@@ -19,6 +19,9 @@ public class ReturnService {
     @Autowired
     private ProductRepository productRepository;
 
+    @Autowired
+    private ProductService productService;
+
     public List<Return> getAllReturns() {
         return returnRepository.findAll();
     }
@@ -46,7 +49,13 @@ public class ReturnService {
             throw new IllegalArgumentException("Return date is required");
         }
 
-        return returnRepository.save(returnEntity);
+        // Save the return
+        Return savedReturn = returnRepository.save(returnEntity);
+
+        // Update product status to RETURNED
+        productService.markProductAsReturned(returnEntity.getProductId());
+
+        return savedReturn;
     }
 
     public Return markReturnAsCompleted(Long returnId, LocalDate returnedDate) {

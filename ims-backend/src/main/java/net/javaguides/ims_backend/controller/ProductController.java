@@ -23,73 +23,33 @@ public class ProductController {
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getProductById(@PathVariable Long id) {
-        try {
-            Product product = productService.getProductById(id);
-            return new ResponseEntity<>(product, HttpStatus.OK);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
-    @GetMapping("/by-product-id/{productId}")
-    public ResponseEntity<?> getProductByProductId(@PathVariable String productId) {
-        try {
-            Product product = productService.getProductByProductId(productId);
-            return new ResponseEntity<>(product, HttpStatus.OK);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
-    }
-
     @PostMapping
-    public ResponseEntity<?> createProduct(@RequestBody Product product) {
-        try {
-            Product createdProduct = productService.createProduct(product);
-            return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
+        Product createdProduct = productService.createProduct(product);
+        return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        try {
-            Product updatedProduct = productService.updateProduct(id, product);
-            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PutMapping("/by-product-id/{productId}/return")
-    public ResponseEntity<?> markProductAsReturned(@PathVariable String productId) {
-        try {
-            Product updatedProduct = productService.markProductAsReturned(productId);
-            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Server error: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody Product product) {
+        Product updatedProduct = productService.updateProduct(id, product);
+        return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        try {
-            productService.deleteProduct(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+    public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
+        productService.deleteProduct(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/by-product-id/{productId}")
+    public ResponseEntity<Product> getProductByProductId(@PathVariable String productId) {
+        Product product = productService.findByProductId(productId);
+        return new ResponseEntity<>(product, HttpStatus.OK);
+    }
+
+    @PutMapping("/by-product-id/{productId}/return")
+    public ResponseEntity<Product> markProductAsReturned(@PathVariable String productId) {
+        Product updatedProduct = productService.markProductAsReturned(productId);
+        return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
     }
 }
