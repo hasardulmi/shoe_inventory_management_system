@@ -56,12 +56,14 @@ const ViewReport = () => {
         const salesWithProfit = filteredSales.map(sale => {
             const product = products.find(p => p.productId === sale.productId);
             if (!product) return null;
-            const profit = sale.finalSoldPrice - product.purchasePrice;
+            const finalSellingPrice = sale.soldPrice * (1 - (sale.discountPercentage || 0) / 100);
+            const profit = finalSellingPrice - product.purchasePrice;
             return {
                 ...sale,
                 productName: product.productName,
                 category: product.category,
                 purchasePrice: product.purchasePrice,
+                finalSellingPrice,
                 profit
             };
         }).filter(sale => sale !== null);
@@ -69,16 +71,16 @@ const ViewReport = () => {
         // Daily report
         const dailyReport = {};
         salesWithProfit.forEach(sale => {
-            const date = sale.soldDate.split('T')[0]; // Handle YYYY-MM-DD or ISO
+            const date = sale.soldDate.split('T')[0]; // Handle ISO or YYYY-MM-DD
             if (!dailyReport[date]) {
                 dailyReport[date] = {
                     totalPurchasePrice: 0,
-                    totalFinalSoldPrice: 0,
+                    totalFinalSellingPrice: 0,
                     totalProfit: 0
                 };
             }
             dailyReport[date].totalPurchasePrice += sale.purchasePrice;
-            dailyReport[date].totalFinalSoldPrice += sale.finalSoldPrice;
+            dailyReport[date].totalFinalSellingPrice += sale.finalSellingPrice;
             dailyReport[date].totalProfit += sale.profit;
         });
 
@@ -90,12 +92,12 @@ const ViewReport = () => {
             if (!monthlyReport[month]) {
                 monthlyReport[month] = {
                     totalPurchasePrice: 0,
-                    totalFinalSoldPrice: 0,
+                    totalFinalSellingPrice: 0,
                     totalProfit: 0
                 };
             }
             monthlyReport[month].totalPurchasePrice += sale.purchasePrice;
-            monthlyReport[month].totalFinalSoldPrice += sale.finalSoldPrice;
+            monthlyReport[month].totalFinalSellingPrice += sale.finalSellingPrice;
             monthlyReport[month].totalProfit += sale.profit;
         });
 
@@ -107,21 +109,21 @@ const ViewReport = () => {
             if (!yearlyReport[year]) {
                 yearlyReport[year] = {
                     totalPurchasePrice: 0,
-                    totalFinalSoldPrice: 0,
+                    totalFinalSellingPrice: 0,
                     totalProfit: 0
                 };
             }
             yearlyReport[year].totalPurchasePrice += sale.purchasePrice;
-            yearlyReport[year].totalFinalSoldPrice += sale.finalSoldPrice;
+            yearlyReport[year].totalFinalSellingPrice += sale.finalSellingPrice;
             yearlyReport[year].totalProfit += sale.profit;
         });
 
         // Total aggregates
         const totals = salesWithProfit.reduce((acc, sale) => ({
             totalPurchasePrice: acc.totalPurchasePrice + sale.purchasePrice,
-            totalFinalSoldPrice: acc.totalFinalSoldPrice + sale.finalSoldPrice,
+            totalFinalSellingPrice: acc.totalFinalSellingPrice + sale.finalSellingPrice,
             totalProfit: acc.totalProfit + sale.profit
-        }), { totalPurchasePrice: 0, totalFinalSoldPrice: 0, totalProfit: 0 });
+        }), { totalPurchasePrice: 0, totalFinalSellingPrice: 0, totalProfit: 0 });
 
         return { salesWithProfit, dailyReport, monthlyReport, yearlyReport, totals };
     };
@@ -150,7 +152,7 @@ const ViewReport = () => {
                             <TableRow>
                                 <TableCell>Date</TableCell>
                                 <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
+                                <TableCell>Total Final Selling Price</TableCell>
                                 <TableCell>Total Profit</TableCell>
                             </TableRow>
                         </TableHead>
@@ -161,7 +163,7 @@ const ViewReport = () => {
                                     <TableRow key={date}>
                                         <TableCell>{date}</TableCell>
                                         <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
+                                        <TableCell>{formatCurrency(data.totalFinalSellingPrice)}</TableCell>
                                         <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -183,7 +185,7 @@ const ViewReport = () => {
                             <TableRow>
                                 <TableCell>Month</TableCell>
                                 <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
+                                <TableCell>Total Final Selling Price</TableCell>
                                 <TableCell>Total Profit</TableCell>
                             </TableRow>
                         </TableHead>
@@ -194,7 +196,7 @@ const ViewReport = () => {
                                     <TableRow key={month}>
                                         <TableCell>{month}</TableCell>
                                         <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
+                                        <TableCell>{formatCurrency(data.totalFinalSellingPrice)}</TableCell>
                                         <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -216,7 +218,7 @@ const ViewReport = () => {
                             <TableRow>
                                 <TableCell>Year</TableCell>
                                 <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
+                                <TableCell>Total Final Selling Price</TableCell>
                                 <TableCell>Total Profit</TableCell>
                             </TableRow>
                         </TableHead>
@@ -227,7 +229,7 @@ const ViewReport = () => {
                                     <TableRow key={year}>
                                         <TableCell>{year}</TableCell>
                                         <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
+                                        <TableCell>{formatCurrency(data.totalFinalSellingPrice)}</TableCell>
                                         <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
                                     </TableRow>
                                 ))}
@@ -282,12 +284,8 @@ const ViewReport = () => {
                     <>
                         {/* Product-Level Profit Table */}
                         <Typography variant="h6" gutterBottom>Product-Level Profit</Typography>
-                        <TableContainer
-                            component={Paper}
-                            className="table-container"
-                            sx={{ mb: 4, maxHeight: '400px', overflowY: 'auto' }}
-                        >
-                            <Table stickyHeader>
+                        <TableContainer component={Paper} className="table-container" sx={{ mb: 4 }}>
+                            <Table>
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Product ID</TableCell>
@@ -297,8 +295,7 @@ const ViewReport = () => {
                                         <TableCell>Purchase Price</TableCell>
                                         <TableCell>Sold Price</TableCell>
                                         <TableCell>Discount (%)</TableCell>
-                                        <TableCell>Discount Price</TableCell>
-                                        <TableCell>Final Sold Price</TableCell>
+                                        <TableCell>Final Selling Price</TableCell>
                                         <TableCell>Profit</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -312,14 +309,13 @@ const ViewReport = () => {
                                             <TableCell>{formatCurrency(sale.purchasePrice)}</TableCell>
                                             <TableCell>{formatCurrency(sale.soldPrice)}</TableCell>
                                             <TableCell>{sale.discountPercentage || 0}</TableCell>
-                                            <TableCell>{formatCurrency(sale.discountPrice || 0)}</TableCell>
-                                            <TableCell>{formatCurrency(sale.finalSoldPrice)}</TableCell>
+                                            <TableCell>{formatCurrency(sale.finalSellingPrice)}</TableCell>
                                             <TableCell>{formatCurrency(sale.profit)}</TableCell>
                                         </TableRow>
                                     ))}
                                     {salesWithProfit.length === 0 && (
                                         <TableRow>
-                                            <TableCell colSpan={10} align="center">No sales data available</TableCell>
+                                            <TableCell colSpan={9} align="center">No sales data available</TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
@@ -333,14 +329,14 @@ const ViewReport = () => {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell>Total Purchase Price</TableCell>
-                                        <TableCell>Total Final Sold Price</TableCell>
+                                        <TableCell>Total Final Selling Price</TableCell>
                                         <TableCell>Total Profit</TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
                                     <TableRow>
                                         <TableCell>{formatCurrency(totals.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(totals.totalFinalSoldPrice)}</TableCell>
+                                        <TableCell>{formatCurrency(totals.totalFinalSellingPrice)}</TableCell>
                                         <TableCell>{formatCurrency(totals.totalProfit)}</TableCell>
                                     </TableRow>
                                 </TableBody>
