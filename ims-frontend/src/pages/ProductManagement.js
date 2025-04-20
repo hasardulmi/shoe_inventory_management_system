@@ -275,7 +275,7 @@ const ProductManagement = () => {
                 case 'shoes':
                     return `Shoe Size: ${parsed.shoeSize}, Color: ${parsed.color}, Laces: ${parsed.laces}, Type: ${parsed.type}, Gender: ${parsed.gender}`;
                 case 'slippers':
-                    return `Slipper Size: ${parsed.slipperSize}, Color: ${parsed.color}, Gender: ${parsed.gender}`;
+                    return `Shoe Size: ${parsed.slipperSize}, Color: ${parsed.color}, Gender: ${parsed.gender}`;
                 case 'bags':
                     return `Color: ${parsed.color}, Type: ${parsed.type}, Gender: ${parsed.gender}`;
                 case 'water bottle':
@@ -326,14 +326,14 @@ const ProductManagement = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell>Purchase Date</TableCell>
                                 <TableCell>Product ID</TableCell>
                                 <TableCell>Product Name</TableCell>
-                                <TableCell>Supplier Name</TableCell>
-                                <TableCell>Brand Name</TableCell>
-                                <TableCell>Purchase Date</TableCell>
+                                <TableCell>Category Details</TableCell>
                                 <TableCell>Purchase Price</TableCell>
                                 <TableCell>Selling Price</TableCell>
-                                <TableCell>Category Details</TableCell>
+                                <TableCell>Supplier Name</TableCell>
+                                <TableCell>Brand Name</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell>Actions</TableCell>
                             </TableRow>
@@ -341,16 +341,16 @@ const ProductManagement = () => {
                         <TableBody>
                             {filteredProducts.map((item) => (
                                 <TableRow key={item.id}>
+                                    <TableCell>{formatDate(item.purchaseDate)}</TableCell>
                                     <TableCell>{item.productId}</TableCell>
                                     <TableCell>{item.productName}</TableCell>
-                                    <TableCell>{item.supplierName || '-'}</TableCell>
-                                    <TableCell>{item.brandName || '-'}</TableCell>
-                                    <TableCell>{formatDate(item.purchaseDate)}</TableCell>
+                                    <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
                                     <TableCell>{item.purchasePrice.toFixed(2)}</TableCell>
                                     <TableCell>
                                         {item.status === 'RETURNED' ? 'Returned Product' : item.sellingPrice.toFixed(2)}
                                     </TableCell>
-                                    <TableCell>{formatCategoryDetails(item.category, item.categoryDetails)}</TableCell>
+                                    <TableCell>{item.supplierName || '-'}</TableCell>
+                                    <TableCell>{item.brandName || '-'}</TableCell>
                                     <TableCell>{getStatusDisplay(item)}</TableCell>
                                     <TableCell>
                                         <IconButton onClick={() => handleOpenDialog(item)}>
@@ -524,6 +524,8 @@ const ProductManagement = () => {
                                         <MenuItem value="">Select Gender</MenuItem>
                                         <MenuItem value="Men">Men</MenuItem>
                                         <MenuItem value="Women">Women</MenuItem>
+                                        <MenuItem value="Girl">Girl</MenuItem>
+                                        <MenuItem value="Boy">Boy</MenuItem>
                                     </Select>
                                     {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
@@ -552,6 +554,7 @@ const ProductManagement = () => {
                                     error={!!errors.color}
                                     helperText={errors.color}
                                 />
+
                                 <FormControl fullWidth margin="normal" error={!!errors.gender}>
                                     <InputLabel>Gender</InputLabel>
                                     <Select
@@ -562,6 +565,8 @@ const ProductManagement = () => {
                                         <MenuItem value="">Select Gender</MenuItem>
                                         <MenuItem value="Men">Men</MenuItem>
                                         <MenuItem value="Women">Women</MenuItem>
+                                        <MenuItem value="Baby-girl">Baby-Girl</MenuItem>
+                                        <MenuItem value="Baby-boy">Baby-Boy</MenuItem>
                                     </Select>
                                     {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
@@ -589,6 +594,7 @@ const ProductManagement = () => {
                                     >
                                         <MenuItem value="">Select Type</MenuItem>
                                         <MenuItem value="School">School</MenuItem>
+                                        <MenuItem value="Nursery">Nursery</MenuItem>
                                         <MenuItem value="Office">Office</MenuItem>
                                         <MenuItem value="Hand Bags">Hand Bags</MenuItem>
                                         <MenuItem value="Side Bags">Side Bags</MenuItem>
@@ -609,6 +615,9 @@ const ProductManagement = () => {
                                         <MenuItem value="">Select Gender</MenuItem>
                                         <MenuItem value="Men">Men</MenuItem>
                                         <MenuItem value="Women">Women</MenuItem>
+                                        <MenuItem value="Boy">Boyn</MenuItem>
+                                        <MenuItem value="Girl">Girl</MenuItem>
+
                                     </Select>
                                     {errors.gender && <Typography color="error">{errors.gender}</Typography>}
                                 </FormControl>
@@ -650,6 +659,7 @@ const ProductManagement = () => {
                                     >
                                         <MenuItem value="">Select Type</MenuItem>
                                         <MenuItem value="School">School</MenuItem>
+                                        <MenuItem value="Baby">Baby</MenuItem>
                                         <MenuItem value="Flasks">Flasks</MenuItem>
                                         <MenuItem value="Other">Other</MenuItem>
                                     </Select>
@@ -699,6 +709,7 @@ const ProductManagement = () => {
                                         <MenuItem value="">Select Color</MenuItem>
                                         <MenuItem value="White">White</MenuItem>
                                         <MenuItem value="Black">Black</MenuItem>
+                                        <MenuItem value="Brown">Brown</MenuItem>
                                         <MenuItem value="Other">Other</MenuItem>
                                     </Select>
                                     {errors.color && <Typography color="error">{errors.color}</Typography>}

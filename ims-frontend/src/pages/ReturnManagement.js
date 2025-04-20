@@ -262,15 +262,15 @@ const ReturnManagement = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell>Return Date</TableCell>
                                 <TableCell>Product ID</TableCell>
                                 <TableCell>Product Name</TableCell>
                                 <TableCell>Purchase Price</TableCell>
                                 <TableCell>Supplier Name</TableCell>
                                 <TableCell>Brand Name</TableCell>
-                                <TableCell>Return Date</TableCell>
-                                <TableCell>Returned Date</TableCell>
                                 <TableCell>Reason</TableCell>
                                 <TableCell>Action</TableCell>
+                                <TableCell>Returned Date</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -278,13 +278,12 @@ const ReturnManagement = () => {
                                 .filter(item => !searchTerm || item.productId.toLowerCase().includes(searchTerm.toLowerCase()))
                                 .map((item) => (
                                     <TableRow key={item.id}>
+                                        <TableCell>{formatDate(item.returnDate)}</TableCell>
                                         <TableCell>{item.productId}</TableCell>
                                         <TableCell>{products[item.productId]?.productName || 'N/A'}</TableCell>
                                         <TableCell>{products[item.productId]?.purchasePrice?.toFixed(2) || 'N/A'}</TableCell>
                                         <TableCell>{products[item.productId]?.supplierName || 'N/A'}</TableCell>
                                         <TableCell>{products[item.productId]?.brandName || 'N/A'}</TableCell>
-                                        <TableCell>{formatDate(item.returnDate)}</TableCell>
-                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'N/A'}</TableCell>
                                         <TableCell>{item.reason}</TableCell>
                                         <TableCell>
                                             <Button
@@ -296,6 +295,7 @@ const ReturnManagement = () => {
                                                 Mark as Returned
                                             </Button>
                                         </TableCell>
+                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'N/A'}</TableCell>
                                     </TableRow>
                                 ))}
                         </TableBody>

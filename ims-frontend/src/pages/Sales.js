@@ -265,26 +265,26 @@ const Sales = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Product ID</TableCell>
-                                <TableCell>Sale Price</TableCell>
-                                <TableCell>Discount (%)</TableCell>
-                                <TableCell>Selling Price</TableCell>
                                 <TableCell>Sale Date</TableCell>
+                                <TableCell>Product ID</TableCell>
+                                <TableCell>Selling Price</TableCell>
+                                <TableCell>Discount (%)</TableCell>
+                                <TableCell>Sale Price</TableCell>
                                 <TableCell>Status</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {filteredSales.map((item) => (
                                 <TableRow key={item.id}>
+                                    <TableCell>{formatDate(item.saleDate)}</TableCell>
                                     <TableCell>{item.productId}</TableCell>
-                                    <TableCell>
-                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : item.salePrice.toFixed(2)}
-                                    </TableCell>
-                                    <TableCell>{item.discount ? (item.discount * 100).toFixed(0) : '0'}</TableCell>
                                     <TableCell>
                                         {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : products[item.productId]?.sellingPrice?.toFixed(2) || 'N/A'}
                                     </TableCell>
-                                    <TableCell>{formatDate(item.saleDate)}</TableCell>
+                                    <TableCell>{item.discount ? (item.discount * 100).toFixed(0) : '0'}</TableCell>
+                                    <TableCell>
+                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : item.salePrice.toFixed(2)}
+                                    </TableCell>
                                     <TableCell>
                                         {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : 'Sold'}
                                     </TableCell>
