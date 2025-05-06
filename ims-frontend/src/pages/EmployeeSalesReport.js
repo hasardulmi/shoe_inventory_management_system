@@ -1,29 +1,43 @@
-// src/pages/SalesManagement.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Button, TextField, Dialog, DialogTitle, DialogContent, DialogActions
+    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Button, Grid, Alert
 } from '@mui/material';
 import OwnerNavbar from '../components/EmployeeNavbar';
 import './styles.css';
 
+// Utility function to format date to dd/mm/yyyy
+const formatDate = (date) => {
+    const d = new Date(date);
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+};
+
+// Utility function to get current date in yyyy-mm-dd
+const getCurrentDateISO = () => {
+    return new Date().toISOString().split('T')[0];
+};
+
 const EmployeeSalesReport = () => {
     const [sales, setSales] = useState([]);
     const [filteredSales, setFilteredSales] = useState([]);
-    const [openDialog, setOpenDialog] = useState(false);
-    const [currentSale, setCurrentSale] = useState({
-        productId: '',
-        soldPrice: '',
-        soldDate: '',
-        discountPercentage: ''
-    });
-    const [errors, setErrors] = useState({});
+    const [products, setProducts] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
-
+    const [newSale, setNewSale] = useState({
+        productId: '',
+        saleDate: getCurrentDateISO(), // Current date in yyyy-mm-dd
+        discount: '',
+        sellingPrice: null
+    });
+    const [finalSalePrice, setFinalSalePrice] = useState(null);
+    const [error, setError] = useState('');
     const BASE_URL = 'http://localhost:8080';
 
     useEffect(() => {
         fetchSales();
+        fetchProducts();
     }, []);
 
     const fetchSales = async () => {
@@ -35,134 +49,137 @@ const EmployeeSalesReport = () => {
             setFilteredSales(response.data);
         } catch (error) {
             console.error('Error fetching sales:', error.message);
+            setError('Failed to fetch sales');
+        }
+    };
+
+    const fetchProducts = async () => {
+        try {
+            const response = await axios.get(`${BASE_URL}/api/products`, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const productMap = {};
+            response.data.forEach(product => {
+                productMap[product.productId] = product;
+            });
+            setProducts(productMap);
+        } catch (error) {
+            console.error('Error fetching products:', error.message);
+            setError('Failed to fetch products');
         }
     };
 
     useEffect(() => {
         let filtered = sales;
         if (searchTerm) {
-            filtered = filtered.filter(item =>
-                item.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                item.soldPrice.toString().includes(searchTerm.toLowerCase()) ||
-                item.soldDate.includes(searchTerm.toLowerCase()) ||
-                item.discountPercentage?.toString().includes(searchTerm.toLowerCase()) ||
-                item.discountPrice?.toString().includes(searchTerm.toLowerCase()) ||
-                item.finalSoldPrice?.toString().includes(searchTerm.toLowerCase())
-            );
+            filtered = filtered.filter(item => {
+                const formattedSaleDate = formatDate(item.saleDate).toLowerCase();
+                const productId = item.productId.toLowerCase();
+                const status = (products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : 'Sold').toLowerCase();
+                const searchLower = searchTerm.toLowerCase();
+
+                return (
+                    formattedSaleDate.includes(searchLower) ||
+                    productId.includes(searchLower) ||
+                    status.includes(searchLower)
+                );
+            });
         }
         setFilteredSales(filtered);
-    }, [sales, searchTerm]);
-
-    const handleInputChange = async (e) => {
-        const { name, value } = e.target;
-        setCurrentSale({ ...currentSale, [name]: value });
-        setErrors({ ...errors, [name]: '' });
-
-        // Auto-fill soldPrice when productId changes (non-editable)
-        if (name === 'productId' && value.trim()) {
-            try {
-                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`);
-                if (response.data && response.data.inStock) {
-                    setCurrentSale(prev => ({
-                        ...prev,
-                        productId: value,
-                        soldPrice: response.data.sellingPrice.toString() // Auto-fill with sellingPrice
-                    }));
-                    setErrors({ ...errors, productId: '' });
-                } else {
-                    setErrors({ ...errors, productId: 'Product is not found or out of stock' });
-                    setCurrentSale(prev => ({ ...prev, productId: value, soldPrice: '' }));
-                }
-            } catch (error) {
-                setErrors({ ...errors, productId: 'Product ID does not exist' });
-                setCurrentSale(prev => ({ ...prev, productId: value, soldPrice: '' }));
-            }
-        }
-    };
-
-    const validateForm = async () => {
-        const newErrors = {};
-        if (!currentSale.productId.trim()) {
-            newErrors.productId = 'Product ID is required';
-        } else {
-            try {
-                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${currentSale.productId}`);
-                if (!response.data || !response.data.inStock) {
-                    newErrors.productId = 'Product is either not found or out of stock';
-                }
-            } catch (error) {
-                newErrors.productId = 'Product ID does not exist';
-            }
-        }
-        if (!currentSale.soldPrice || isNaN(currentSale.soldPrice) || parseFloat(currentSale.soldPrice) <= 0) {
-            newErrors.soldPrice = 'Sold Price must be a positive number';
-        }
-        if (!currentSale.soldDate) {
-            newErrors.soldDate = 'Sold Date is required';
-        }
-        if (currentSale.discountPercentage && (isNaN(currentSale.discountPercentage) || parseFloat(currentSale.discountPercentage) < 0 || parseFloat(currentSale.discountPercentage) > 100)) {
-            newErrors.discountPercentage = 'Discount must be between 0 and 100';
-        }
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
-    };
-
-    const handleOpenDialog = () => {
-        setCurrentSale({
-            productId: '',
-            soldPrice: '',
-            soldDate: '',
-            discountPercentage: ''
-        });
-        setErrors({});
-        setOpenDialog(true);
-    };
-
-    const handleCloseDialog = () => {
-        setOpenDialog(false);
-        setErrors({});
-    };
-
-    const handleSaveSale = async () => {
-        if (!(await validateForm())) {
-            console.log('Validation failed:', errors);
-            return;
-        }
-
-        try {
-            const discount = currentSale.discountPercentage ? parseFloat(currentSale.discountPercentage) : 0;
-            const soldPrice = parseFloat(currentSale.soldPrice);
-            const discountPrice = soldPrice * (discount / 100);
-            const finalSoldPrice = soldPrice - discountPrice;
-
-            const saleToSave = {
-                productId: currentSale.productId,
-                soldPrice: soldPrice,
-                soldDate: currentSale.soldDate,
-                discountPercentage: discount,
-                discountPrice: discountPrice,
-                finalSoldPrice: finalSoldPrice
-            };
-
-            console.log('Saving sale payload:', saleToSave);
-
-            await axios.post(`${BASE_URL}/api/sales`, saleToSave, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            console.log('Sale added successfully');
-            fetchSales();
-            handleCloseDialog();
-        } catch (error) {
-            const errorMessage = error.response
-                ? `Status ${error.response.status}: ${JSON.stringify(error.response.data) || error.response.statusText}`
-                : `Network Error: ${error.message}`;
-            console.error('Error saving sale:', errorMessage);
-            setErrors({ general: `Failed to save sale: ${errorMessage}` });
-        }
-    };
+    }, [sales, products, searchTerm]);
 
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
+    };
+
+    const handleInputChange = async (e) => {
+        const { name, value } = e.target;
+        setNewSale(prev => ({ ...prev, [name]: value }));
+        setError('');
+
+        if (name === 'productId' && value) {
+            try {
+                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const product = response.data;
+                if (product.status === 'RETURNED') {
+                    setError('Product is returned and cannot be sold');
+                    setNewSale(prev => ({ ...prev, sellingPrice: null }));
+                    setFinalSalePrice(null);
+                } else if (!product.inStock) {
+                    setError('Product is not in stock');
+                    setNewSale(prev => ({ ...prev, sellingPrice: null }));
+                    setFinalSalePrice(null);
+                } else {
+                    setNewSale(prev => ({ ...prev, sellingPrice: product.sellingPrice }));
+                    calculateFinalPrice(product.sellingPrice, newSale.discount);
+                }
+            } catch (error) {
+                setError('Product not found');
+                setNewSale(prev => ({ ...prev, sellingPrice: null }));
+                setFinalSalePrice(null);
+            }
+        }
+
+        if (name === 'discount') {
+            calculateFinalPrice(newSale.sellingPrice, value);
+        }
+    };
+
+    const calculateFinalPrice = (sellingPrice, discount) => {
+        if (!sellingPrice) {
+            setFinalSalePrice(null);
+            return;
+        }
+        if (!discount || discount === '') {
+            setFinalSalePrice(Number(sellingPrice).toFixed(2));
+            return;
+        }
+        const discountValue = Number(discount);
+        if (discountValue < 0 || discountValue > 100) {
+            setError('Discount must be between 0 and 100%');
+            setFinalSalePrice(null);
+            return;
+        }
+        const finalPrice = sellingPrice * (1 - discountValue / 100);
+        setFinalSalePrice(finalPrice.toFixed(2));
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        if (!newSale.productId || !newSale.sellingPrice || !newSale.saleDate) {
+            setError('Please enter a valid Product ID');
+            return;
+        }
+        if (newSale.discount && (newSale.discount < 0 || newSale.discount > 100)) {
+            setError('Discount must be between 0 and 100%');
+            return;
+        }
+        try {
+            const saleData = {
+                productId: newSale.productId,
+                salePrice: finalSalePrice ? Number(finalSalePrice) : Number(newSale.sellingPrice),
+                saleDate: newSale.saleDate,
+                discount: newSale.discount ? Number(newSale.discount) / 100 : null
+            };
+            console.log('Submitting sale:', saleData);
+            await axios.post(`${BASE_URL}/api/sales`, saleData, {
+                headers: { 'Content-Type': 'application/json' }
+            });
+            setNewSale({
+                productId: '',
+                saleDate: getCurrentDateISO(), // Reset to current date
+                discount: '',
+                sellingPrice: null
+            });
+            setFinalSalePrice(null);
+            setError('');
+            fetchSales();
+        } catch (error) {
+            console.error('Error creating sale:', error.response || error);
+            setError(error.response?.data || 'Failed to create sale');
+        }
     };
 
     return (
@@ -170,8 +187,76 @@ const EmployeeSalesReport = () => {
             <OwnerNavbar />
             <Box sx={{ p: 4 }} className="page-container">
                 <Typography variant="h4" component="h1" gutterBottom className="page-title">
-                    Sales Management
+                    Sale Management
                 </Typography>
+
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                        {error}
+                    </Alert>
+                )}
+
+                <Box sx={{ mb: 4 }}>
+                    <Typography variant="h6" gutterBottom>
+                        Create New Sale
+                    </Typography>
+                    <form onSubmit={handleSubmit}>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={3}>
+                                <TextField
+                                    label="Product ID"
+                                    name="productId"
+                                    value={newSale.productId}
+                                    onChange={handleInputChange}
+                                    fullWidth
+                                    required
+                                    placeholder="e.g., S00001"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={3}>
+                                <TextField
+                                    label="Selling Price"
+                                    value={newSale.sellingPrice ? newSale.sellingPrice.toFixed(2) : ''}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={2}>
+                                <TextField
+                                    label="Discount (%)"
+                                    name="discount"
+                                    type="number"
+                                    value={newSale.discount}
+                                    onChange={handleInputChange}
+                                    fullWidth
+                                    inputProps={{ min: 0, max: 100 }}
+                                    placeholder="Optional (0-100)"
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={2}>
+                                <TextField
+                                    label="Final Sale Price"
+                                    value={finalSalePrice || ''}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12} sm={2}>
+                                <TextField
+                                    label="Sale Date"
+                                    value={formatDate(newSale.saleDate)}
+                                    fullWidth
+                                    disabled
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Button type="submit" variant="contained" color="primary">
+                                    Create Sale
+                                </Button>
+                            </Grid>
+                        </Grid>
+                    </form>
+                </Box>
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, gap: 2 }}>
                     <TextField
@@ -180,98 +265,42 @@ const EmployeeSalesReport = () => {
                         value={searchTerm}
                         onChange={handleSearch}
                         sx={{ width: '300px' }}
-                        placeholder="Search by ID, price, date, discount"
+                        placeholder="Search by Sale Date, Product ID, or Status"
                     />
-                    <Button variant="contained" color="primary" onClick={handleOpenDialog} className="action-button">
-                        Add New Sale
-                    </Button>
                 </Box>
 
                 <TableContainer component={Paper} className="table-container">
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell>Sale Date</TableCell>
                                 <TableCell>Product ID</TableCell>
-                                <TableCell>Sold Price</TableCell>
+                                <TableCell>Selling Price</TableCell>
                                 <TableCell>Discount (%)</TableCell>
-                                <TableCell>Discount Price</TableCell>
-                                <TableCell>Final Sold Price</TableCell>
-                                <TableCell>Sold Date</TableCell>
+                                <TableCell>Sale Price</TableCell>
+                                <TableCell>Status</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {filteredSales.map((item) => (
                                 <TableRow key={item.id}>
+                                    <TableCell>{formatDate(item.saleDate)}</TableCell>
                                     <TableCell>{item.productId}</TableCell>
-                                    <TableCell>{item.soldPrice.toFixed(2)}</TableCell>
-                                    <TableCell>{item.discountPercentage ? item.discountPercentage.toFixed(2) : '0.00'}</TableCell>
-                                    <TableCell>{item.discountPrice ? item.discountPrice.toFixed(2) : '0.00'}</TableCell>
-                                    <TableCell>{item.finalSoldPrice.toFixed(2)}</TableCell>
-                                    <TableCell>{item.soldDate}</TableCell>
+                                    <TableCell>
+                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : products[item.productId]?.sellingPrice?.toFixed(2) || 'N/A'}
+                                    </TableCell>
+                                    <TableCell>{item.discount ? (item.discount * 100).toFixed(0) : '0'}</TableCell>
+                                    <TableCell>
+                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : item.salePrice.toFixed(2)}
+                                    </TableCell>
+                                    <TableCell>
+                                        {products[item.productId]?.status === 'RETURNED' ? 'Returned Product' : 'Sold'}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 </TableContainer>
-
-                <Dialog open={openDialog} onClose={handleCloseDialog} className="dialog">
-                    <DialogTitle>Add New Sale</DialogTitle>
-                    <DialogContent>
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Product ID"
-                            name="productId"
-                            value={currentSale.productId}
-                            onChange={handleInputChange}
-                            error={!!errors.productId}
-                            helperText={errors.productId}
-                            required
-                        />
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Sold Price"
-                            name="soldPrice"
-                            value={currentSale.soldPrice}
-                            disabled
-                            error={!!errors.soldPrice}
-                            helperText={errors.soldPrice || 'Auto-filled from product selling price'}
-                            required
-                            type="number"
-                        />
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Sold Date"
-                            name="soldDate"
-                            value={currentSale.soldDate}
-                            onChange={handleInputChange}
-                            error={!!errors.soldDate}
-                            helperText={errors.soldDate}
-                            required
-                            type="date"
-                            InputLabelProps={{ shrink: true }}
-                        />
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Discount Percentage"
-                            name="discountPercentage"
-                            value={currentSale.discountPercentage}
-                            onChange={handleInputChange}
-                            error={!!errors.discountPercentage}
-                            helperText={errors.discountPercentage || 'Optional (0-100)'}
-                            type="number"
-                            placeholder="0-100"
-                        />
-                        {errors.general && <Typography color="error">{errors.general}</Typography>}
-                    </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleCloseDialog} className="dialog-button">Cancel</Button>
-                        <Button onClick={handleSaveSale} color="primary" className="dialog-button">Save</Button>
-                    </DialogActions>
-                </Dialog>
             </Box>
         </>
     );

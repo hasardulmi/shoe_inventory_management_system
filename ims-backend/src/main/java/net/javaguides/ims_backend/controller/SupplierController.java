@@ -1,17 +1,16 @@
-// src/main/java/net/javaguides/ims_backend/controller/SupplierController.java
 package net.javaguides.ims_backend.controller;
 
+import net.javaguides.ims_backend.entity.Supplier;
+import net.javaguides.ims_backend.service.SupplierService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import net.javaguides.ims_backend.entity.Supplier;
-import net.javaguides.ims_backend.service.SupplierService;
-
+import jakarta.validation.Valid;
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/api/supplier")
-@CrossOrigin(origins = "*")
+@RequestMapping("/api/suppliers")
 public class SupplierController {
 
     @Autowired
@@ -23,18 +22,22 @@ public class SupplierController {
     }
 
     @PostMapping
-    public Supplier createSupplier(@RequestBody Supplier supplier) {
-        return supplierService.createSupplier(supplier);
-    }
-
-    @PutMapping("/{id}")
-    public Supplier updateSupplier(@PathVariable Long id, @RequestBody Supplier supplier) {
-        return supplierService.updateSupplier(id, supplier);
+    public ResponseEntity<?> createSupplier(@Valid @RequestBody Supplier supplier) {
+        try {
+            Supplier savedSupplier = supplierService.addSupplier(supplier);
+            return ResponseEntity.ok(savedSupplier);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteSupplier(@PathVariable Long id) {
-        supplierService.deleteSupplier(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deleteSupplier(@PathVariable Long id) {
+        try {
+            supplierService.deleteSupplier(id);
+            return ResponseEntity.ok("{\"message\":\"Supplier deleted successfully\"}");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
     }
 }

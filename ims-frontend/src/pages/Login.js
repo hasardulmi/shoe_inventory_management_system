@@ -1,7 +1,6 @@
-// src/components/Login.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TextField, Button, Typography, Box } from '@mui/material';
+import { TextField, Button, Typography, Box, CircularProgress } from '@mui/material';
 import axios from 'axios';
 import './styles.css';
 
@@ -9,23 +8,43 @@ function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setError('');
+        setLoading(true);
         try {
             const response = await axios.post('http://localhost:8080/api/login', {
                 email,
                 password
+            }, {
+                withCredentials: true
             });
-            const user = response.data;
-            if (user.jobTitle === 'Owner') {
+            const { user, role } = response.data;
+            localStorage.setItem('userRole', role);
+            localStorage.setItem('userEmail', user.email);
+            if (role === 'OWNER') {
                 navigate('/owner-dashboard');
             } else {
                 navigate('/employee/dashboard');
             }
         } catch (err) {
-            setError('Invalid email or password');
+            console.error('Login error:', err);
+            console.error('Error response:', err.response);
+            console.error('Error request:', err.request);
+            if (err.response && err.response.data && err.response.data.error) {
+                setError(err.response.data.error);
+            } else if (err.response) {
+                setError(`Server error: ${err.response.status} ${err.response.statusText}`);
+            } else if (err.request) {
+                setError('No response from server. Is the backend running on http://localhost:8080?');
+            } else {
+                setError('Request failed: ' + err.message);
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -59,8 +78,9 @@ function Login() {
                         color="primary"
                         fullWidth
                         sx={{ mt: 2 }}
+                        disabled={loading}
                     >
-                        Login
+                        {loading ? <CircularProgress size={24} /> : 'Login'}
                     </Button>
                 </form>
             </Box>

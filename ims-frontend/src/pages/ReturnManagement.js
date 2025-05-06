@@ -280,10 +280,10 @@ const ReturnManagement = () => {
                                     <TableRow key={item.id}>
                                         <TableCell>{formatDate(item.returnDate)}</TableCell>
                                         <TableCell>{item.productId}</TableCell>
-                                        <TableCell>{products[item.productId]?.productName || 'N/A'}</TableCell>
-                                        <TableCell>{products[item.productId]?.purchasePrice?.toFixed(2) || 'N/A'}</TableCell>
-                                        <TableCell>{products[item.productId]?.supplierName || 'N/A'}</TableCell>
-                                        <TableCell>{products[item.productId]?.brandName || 'N/A'}</TableCell>
+                                        <TableCell>{products[item.productId]?.productName || '-'}</TableCell>
+                                        <TableCell>{products[item.productId]?.purchasePrice?.toFixed(2) || '-'}</TableCell>
+                                        <TableCell>{products[item.productId]?.supplierName || '-'}</TableCell>
+                                        <TableCell>{products[item.productId]?.brandName || '-'}</TableCell>
                                         <TableCell>{item.reason}</TableCell>
                                         <TableCell>
                                             <Button
@@ -295,7 +295,7 @@ const ReturnManagement = () => {
                                                 Mark as Returned
                                             </Button>
                                         </TableCell>
-                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'N/A'}</TableCell>
+                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'Not Return Yet'}</TableCell>
                                     </TableRow>
                                 ))}
                         </TableBody>

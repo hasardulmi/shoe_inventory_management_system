@@ -1,46 +1,77 @@
-// src/main/java/net/javaguides/ims_backend/entity/Supplier.java
 package net.javaguides.ims_backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
 @Entity
-@Table(name = "suppliers")
+@Table(name = "suppliers", uniqueConstraints = @UniqueConstraint(columnNames = "company_name"))
 public class Supplier {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "supplier_first_name", nullable = false)
-    private String supplierFirstName;
+    @NotBlank(message = "Company name is required")
+    @Column(name = "company_name", nullable = false)
+    private String companyName;
 
-    @Column(name = "supplier_last_name", nullable = false)
-    private String supplierLastName;
+    @Column(name = "contact_name")
+    private String contactName;
 
-    @Column(name = "supplier_email", nullable = false)
-    private String supplierEmail;
+    @Email(message = "Invalid email format")
+    @Column(name = "contact_email")
+    private String contactEmail;
 
-    @Column(name = "supplier_phone_num", nullable = false)
-    private String supplierPhoneNum;
+    @Column(name = "contact_phone")
+    private String contactPhone;
 
-    @Column(name = "supplier_address", nullable = false)
-    private String supplierAddress;
+    public Supplier() {}
 
-    @Column(name = "supplier_brand_name", nullable = false)
-    private String supplierBrandName;
+    public Supplier(String companyName, String contactName, String contactEmail, String contactPhone) {
+        this.companyName = companyName;
+        this.contactName = contactName;
+        this.contactEmail = contactEmail;
+        this.contactPhone = contactPhone;
+    }
 
-    // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getSupplierFirstName() { return supplierFirstName; }
-    public void setSupplierFirstName(String supplierFirstName) { this.supplierFirstName = supplierFirstName; }
-    public String getSupplierLastName() { return supplierLastName; }
-    public void setSupplierLastName(String supplierLastName) { this.supplierLastName = supplierLastName; }
-    public String getSupplierEmail() { return supplierEmail; }
-    public void setSupplierEmail(String supplierEmail) { this.supplierEmail = supplierEmail; }
-    public String getSupplierPhoneNum() { return supplierPhoneNum; }
-    public void setSupplierPhoneNum(String supplierPhoneNum) { this.supplierPhoneNum = supplierPhoneNum; }
-    public String getSupplierAddress() { return supplierAddress; }
-    public void setSupplierAddress(String supplierAddress) { this.supplierAddress = supplierAddress; }
-    public String getSupplierBrandName() { return supplierBrandName; }
-    public void setSupplierBrandName(String supplierBrandName) { this.supplierBrandName = supplierBrandName; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getCompanyName() {
+        return companyName;
+    }
+
+    public void setCompanyName(String companyName) {
+        this.companyName = companyName;
+    }
+
+    public String getContactName() {
+        return contactName;
+    }
+
+    public void setContactName(String contactName) {
+        this.contactName = contactName;
+    }
+
+    public String getContactEmail() {
+        return contactEmail;
+    }
+
+    public void setContactEmail(String contactEmail) {
+        this.contactEmail = contactEmail;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
 }

@@ -44,7 +44,7 @@ const OwnerNavbar = () => {
                 <Button color="inherit" component={Link} to="/report">
                    Reports
                 </Button>
-                <Button color="inherit" onClick={handleLogout} startIcon={<LogoutIcon />}>
+                <Button color="inherit" component={Link} to="/">
                     Logout
                 </Button>
             </Toolbar>

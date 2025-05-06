@@ -1,31 +1,22 @@
-package net.javaguides.ims_backend.entity;
+package net.javaguides.ims_backend.dto;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
-@Entity
-@Table(name = "products")
-public class Product {
+public class ProductDTO {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "product_id")
     private String productId; // No longer required, generated automatically
 
-    @NotNull(message = "Product name is required")
-    @Column(nullable = false)
-    private String name;
+    @NotBlank(message = "Product name is required")
+    private String productName;
 
-    @NotNull(message = "Category is required")
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category;
+    @NotNull(message = "Category ID is required")
+    private Long categoryId;
 
     @NotNull(message = "Purchase price is required")
     private Double purchasePrice;
@@ -35,31 +26,22 @@ public class Product {
 
     private String brandName;
 
-    @NotNull(message = "Purchase date is required")
-    private LocalDate purchaseDate;
+    @NotBlank(message = "Purchase date is required")
+    private String purchaseDate;
 
     private Boolean inStock;
 
-    @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "product_subcategories", joinColumns = @JoinColumn(name = "product_id"))
-    @MapKeyColumn(name = "subcategory_name")
-    @Column(name = "subcategory_value")
-    private Map<String, String> subcategories = new HashMap<>();
+    private Map<String, String> subcategories;
 
-    @Column(name = "has_sizes")
     private Boolean hasSizes;
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<SizeQuantity> sizeQuantities;
+    private List<SizeQuantityDTO> sizeQuantities;
 
-    @Column(name = "quantity")
     private Integer quantity; // For products without sizes
 
-    @Lob
-    @Column(name = "image", columnDefinition = "LONGBLOB")
-    private byte[] image;
+    private String image; // Base64 encoded string for frontend
 
-    public Product() {
+    public ProductDTO() {
         this.subcategories = new HashMap<>();
     }
 
@@ -79,20 +61,20 @@ public class Product {
         this.productId = productId;
     }
 
-    public String getName() {
-        return name;
+    public String getProductName() {
+        return productName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
 
-    public Category getCategory() {
-        return category;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
     public Double getPurchasePrice() {
@@ -119,11 +101,11 @@ public class Product {
         this.brandName = brandName;
     }
 
-    public LocalDate getPurchaseDate() {
+    public String getPurchaseDate() {
         return purchaseDate;
     }
 
-    public void setPurchaseDate(LocalDate purchaseDate) {
+    public void setPurchaseDate(String purchaseDate) {
         this.purchaseDate = purchaseDate;
     }
 
@@ -151,11 +133,11 @@ public class Product {
         this.hasSizes = hasSizes;
     }
 
-    public List<SizeQuantity> getSizeQuantities() {
+    public List<SizeQuantityDTO> getSizeQuantities() {
         return sizeQuantities;
     }
 
-    public void setSizeQuantities(List<SizeQuantity> sizeQuantities) {
+    public void setSizeQuantities(List<SizeQuantityDTO> sizeQuantities) {
         this.sizeQuantities = sizeQuantities;
     }
 
@@ -167,11 +149,11 @@ public class Product {
         this.quantity = quantity;
     }
 
-    public byte[] getImage() {
+    public String getImage() {
         return image;
     }
 
-    public void setImage(byte[] image) {
+    public void setImage(String image) {
         this.image = image;
     }
 }

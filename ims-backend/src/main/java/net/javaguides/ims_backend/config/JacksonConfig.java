@@ -1,4 +1,3 @@
-// src/main/java/net/javaguides/ims_backend/config/JacksonConfig.java
 package net.javaguides.ims_backend.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
