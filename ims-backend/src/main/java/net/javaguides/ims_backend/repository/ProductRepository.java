@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -17,4 +18,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     @Query("SELECT MAX(p.productId) FROM Product p WHERE p.productId LIKE ?1%")
     String findMaxProductIdByCategoryPrefix(String prefix);
+
+    Optional<Product> findByProductId(String productId);
 }

@@ -9,7 +9,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import ProductManagement from "./pages/ProductManagement";
 import EmployeeProfile from './pages/EmployeeProfile';
 import OwnerProfile from './pages/OwnerProfile';
-import Sales from "./pages/Sales";
+import Sales from "./pages/SalesManagement";
 import EmployeeSalesReport from './pages/EmployeeSalesReport';
 import Return from './pages/ReturnManagement';
 import EmployeeReturn from './pages/EmployeeReturn';
@@ -32,7 +32,7 @@ function App() {
                 <Route path="/product-management" element={<ProductManagement />} />
                 <Route path="/employeeProfile" element={<EmployeeProfile />} />
                 <Route path="/profile" element={<OwnerProfile />} />
-                <Route path="/sales" element={<Sales />} />
+                <Route path="/sales" element={<Sales/>} />
                 <Route path="/employee-sales-report" element={<EmployeeSalesReport />} />
                 <Route path="/return" element={<Return />} />
                 <Route path="/employee-return" element={<EmployeeReturn />} />
