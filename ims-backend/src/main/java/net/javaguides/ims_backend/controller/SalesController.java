@@ -136,6 +136,27 @@ public class SalesController {
         }
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getSaleById(@PathVariable Long id) {
+        try {
+            Sale sale = entityManager.find(Sale.class, id);
+            if (sale == null) {
+                throw new IllegalArgumentException("Sale not found with ID: " + id);
+            }
+            Map<String, Object> response = new HashMap<>();
+            response.put("productId", sale.getProductId());
+            response.put("sizeQuantities", sale.getSizeQuantities() != null ? sale.getSizeQuantities() : new HashMap<>());
+            response.put("quantity", sale.getQuantity());
+            response.put("success", true);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error fetching sale with ID {}: {}", id, e.getMessage(), e);
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     private Map<String, String> generateInvoice(SaleDTO saleDTO, Product product) {
         Map<String, String> invoice = new HashMap<>();
         invoice.put("shopName", "Sarasi Shoe Shop");

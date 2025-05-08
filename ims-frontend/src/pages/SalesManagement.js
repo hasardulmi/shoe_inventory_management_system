@@ -410,7 +410,7 @@ const SalesManagement = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : sales.length > 0 ? (
-                                sales.map(sale => (
+                                [...sales].reverse().map(sale => (
                                     <TableRow key={sale.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
                                         <TableCell>{sale.id || 'N/A'}</TableCell>
                                         <TableCell>{sale.productId || 'N/A'}</TableCell>

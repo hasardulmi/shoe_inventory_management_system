@@ -28,6 +28,37 @@ public class ProductController {
         return ResponseEntity.ok(inventoryService.getAllProducts());
     }
 
+    @GetMapping("/{productId}")
+    public ResponseEntity<?> getProductDetails(@PathVariable String productId) {
+        try {
+            if (productId == null || productId.trim().isEmpty()) {
+                throw new IllegalArgumentException("Product ID is null or empty");
+            }
+            Product product = productRepository.findAllWithSubcategoriesAndSizes().stream()
+                    .filter(p -> productId.equals(p.getProductId()))
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + productId));
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("productName", product.getName() != null ? product.getName() : "Unknown Product");
+            response.put("image", product.getImage() != null ? java.util.Base64.getEncoder().encodeToString(product.getImage()) : null);
+            response.put("categoryName", product.getCategory() != null ? product.getCategory().getCategoryName() : "N/A");
+            response.put("subcategories", product.getSubcategories() != null ? product.getSubcategories() : new HashMap<>());
+            response.put("hasSizes", product.getHasSizes() != null ? product.getHasSizes() : false);
+            response.put("sizeQuantities", product.getSizeQuantities() != null ?
+                    product.getSizeQuantities().stream()
+                            .map(sq -> Map.of("size", sq.getSize(), "quantity", sq.getQuantity()))
+                            .toList() : new ArrayList<>());
+            response.put("sellingPrice", product.getSellingPrice() != null ? product.getSellingPrice() : 0.0);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(errorResponse);
+        }
+    }
+
     @PostMapping(consumes = "multipart/form-data")
     public ResponseEntity<?> createProduct(
             @RequestParam("productName") String productName,
