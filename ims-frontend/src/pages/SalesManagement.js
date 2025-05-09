@@ -26,7 +26,7 @@ const SalesManagement = () => {
     const [totalSellingPrice, setTotalSellingPrice] = useState(0);
     const [tempSaleId, setTempSaleId] = useState(null);
     const [tempQuantities, setTempQuantities] = useState({});
-    const [selectedCategory, setSelectedCategory] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -248,16 +248,16 @@ const SalesManagement = () => {
         setTempSaleId(null);
     };
 
-    const handleCategoryChange = (e) => {
-        setSelectedCategory(e.target.value);
+    const handleProductIdFilterChange = (e) => {
+        setSelectedProductId(e.target.value);
     };
 
     const getFilteredSales = () => {
-        if (!selectedCategory) return sales; // If no category selected, return all sales
-        return sales.filter(sale => sale.category?.toLowerCase() === selectedCategory.toLowerCase());
+        if (!selectedProductId) return sales; // If no Product ID selected, return all sales
+        return sales.filter(sale => String(sale.productId) === String(selectedProductId));
     };
 
-    const uniqueCategories = [...new Set(sales.map(sale => sale.category).filter(Boolean))];
+    const uniqueProductIds = [...new Set(sales.map(sale => sale.productId).filter(Boolean))];
 
     return (
         <>
@@ -285,19 +285,19 @@ const SalesManagement = () => {
                     Record New Sale
                 </Button>
 
-                {/* Category Filter */}
+                {/* Product ID Filter */}
                 <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
                     <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
-                        <InputLabel>Category</InputLabel>
+                        <InputLabel>Product ID</InputLabel>
                         <Select
-                            value={selectedCategory}
-                            onChange={handleCategoryChange}
-                            label="Category"
+                            value={selectedProductId}
+                            onChange={handleProductIdFilterChange}
+                            label="Product ID"
                         >
-                            <MenuItem value="">All Categories</MenuItem>
-                            {uniqueCategories.map((category, index) => (
-                                <MenuItem key={index} value={category.toLowerCase()}>
-                                    {category}
+                            <MenuItem value="">All Product IDs</MenuItem>
+                            {uniqueProductIds.map((productId, index) => (
+                                <MenuItem key={index} value={productId}>
+                                    {productId}
                                 </MenuItem>
                             ))}
                         </Select>
@@ -490,21 +490,21 @@ const SalesManagement = () => {
                     </Dialog>
                 )}
 
-                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-                    <Table>
+                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px', maxHeight: '600px', overflowY: 'auto', position: 'relative' }}>
+                    <Table stickyHeader>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#3b82f6' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sales ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Image</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sale Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Category</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Subcategories</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Quantity</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Unit Selling Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Discount</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Selling Price</TableCell>
+                            <TableRow sx={{ bgcolor: '#3b82f6', position: 'sticky', top: 0, zIndex: 1 }}>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sales ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product Name</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Image</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sale Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Category</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Subcategories</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Quantity</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Unit Selling Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Discount</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Selling Price</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -563,6 +563,40 @@ const SalesManagement = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <style>
+                    {`
+                        .MuiTableHead-root {
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableCell-head {
+                            color: white;
+                            font-weight: bold;
+                            border-bottom: 2px solid #1565c0;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableContainer-root {
+                            position: relative;
+                            max-height: 600px;
+                            overflow-y: auto;
+                        }
+
+                        .MuiTableRow-root:hover {
+                            background-color: #f9fafb;
+                        }
+
+                        .MuiTableCell-body {
+                            padding: 12px 16px;
+                            border-bottom: 1px solid #e0e0e0;
+                            color: #333;
+                        }
+                    `}
+                </style>
             </Box>
         </>
     );
