@@ -23,6 +23,9 @@ const SalesManagement = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [totalSellingPrice, setTotalSellingPrice] = useState(0);
+    const [tempSaleId, setTempSaleId] = useState(null);
+    const [tempQuantities, setTempQuantities] = useState({});
 
     useEffect(() => {
         fetchData();
@@ -42,7 +45,16 @@ const SalesManagement = () => {
                 setSales([]);
             } else {
                 console.log("Fetched Sales:", salesData);
+                const initialTempQuantities = {};
+                salesData.forEach(sale => {
+                    if (sale.sizeQuantities) {
+                        initialTempQuantities[sale.id] = { ...sale.sizeQuantities };
+                    } else {
+                        initialTempQuantities[sale.id] = sale.quantity || 0;
+                    }
+                });
                 setSales(salesData);
+                setTempQuantities(initialTempQuantities);
             }
             setProducts(productsRes.data || []);
         } catch (err) {
@@ -68,7 +80,9 @@ const SalesManagement = () => {
                         productId,
                         sizeQuantities: product.hasSizes ? product.sizeQuantities.map(sq => ({ size: sq.size, quantity: '' })) : [{ size: '', quantity: '' }],
                         quantity: !product.hasSizes ? '' : prev.quantity,
+                        discount: prev.discount || '',
                     }));
+                    calculateTotalSellingPrice();
                 })
                 .catch(err => {
                     console.error("Error fetching product details:", err);
@@ -76,13 +90,15 @@ const SalesManagement = () => {
                 });
         } else {
             setSelectedProduct(null);
-            setFormData(prev => ({ ...prev, sizeQuantities: [{ size: '', quantity: '' }], quantity: '' }));
+            setFormData(prev => ({ ...prev, sizeQuantities: [{ size: '', quantity: '' }], quantity: '', discount: '' }));
+            setTotalSellingPrice(0);
         }
     };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        calculateTotalSellingPrice();
     };
 
     const handleSizeQuantityChange = (index, field, value) => {
@@ -91,6 +107,29 @@ const SalesManagement = () => {
             updatedSizeQuantities[index] = { ...updatedSizeQuantities[index], [field]: value };
             return { ...prev, sizeQuantities: updatedSizeQuantities };
         });
+        calculateTotalSellingPrice();
+    };
+
+    const calculateTotalSellingPrice = () => {
+        if (!selectedProduct || !selectedProduct.sellingPrice) {
+            setTotalSellingPrice(0);
+            return;
+        }
+
+        const sellingPrice = parseFloat(selectedProduct.sellingPrice) || 0;
+        const discount = parseFloat(formData.discount) || 0;
+        let totalQuantity = 0;
+
+        if (selectedProduct.hasSizes) {
+            totalQuantity = formData.sizeQuantities
+                .filter(sq => sq.quantity && !isNaN(parseInt(sq.quantity)))
+                .reduce((sum, sq) => sum + parseInt(sq.quantity), 0);
+        } else {
+            totalQuantity = parseInt(formData.quantity) || 0;
+        }
+
+        const newTotalSellingPrice = (sellingPrice * totalQuantity) - discount;
+        setTotalSellingPrice(newTotalSellingPrice >= 0 ? newTotalSellingPrice : 0);
     };
 
     const handleAddSizeQuantity = () => {
@@ -105,6 +144,24 @@ const SalesManagement = () => {
             ...prev,
             sizeQuantities: prev.sizeQuantities.filter((_, i) => i !== index)
         }));
+        calculateTotalSellingPrice();
+    };
+
+    const calculateSaleTotalSellingPrice = (sale) => {
+        const sellingPrice = parseFloat(sale.sellingPrice) || 0;
+        const discount = parseFloat(sale.discount) || 0;
+        let totalQuantity = 0;
+
+        if (sale.sizeQuantities) {
+            const tempSizes = tempQuantities[sale.id] || sale.sizeQuantities;
+            totalQuantity = Object.values(tempSizes)
+                .reduce((sum, qty) => sum + (parseInt(qty) || 0), 0);
+        } else {
+            totalQuantity = parseInt(tempQuantities[sale.id] || sale.quantity) || 0;
+        }
+
+        const newTotalSellingPrice = (sellingPrice * totalQuantity) - discount;
+        return newTotalSellingPrice >= 0 ? newTotalSellingPrice : 0;
     };
 
     const handleSubmit = async (e) => {
@@ -127,10 +184,19 @@ const SalesManagement = () => {
 
             const response = await axios.post('http://localhost:8080/api/sales', payload);
             console.log("Sale Creation Response:", response.data);
+            const saleData = response.data[0] || response.data.invoice;
+
+            const maxSaleId = sales.length > 0 ? Math.max(...sales.map(sale => parseInt(sale.id) || 0)) : 0;
+            const newTempSaleId = maxSaleId + 1;
+            setTempSaleId(newTempSaleId);
+
+            const invoiceWithTempId = { ...saleData, tempSaleId: newTempSaleId };
+            setInvoice(invoiceWithTempId);
+
             setSuccess('Sale recorded successfully!');
-            setInvoice(response.data.invoice);
             setFormData({ productId: '', quantity: '', sizeQuantities: [{ size: '', quantity: '' }], discount: '' });
             setSelectedProduct(null);
+            setTotalSellingPrice(0);
             setOpenDialog(false);
             fetchData();
         } catch (err) {
@@ -157,7 +223,8 @@ const SalesManagement = () => {
         printWindow.document.write('</head><body>');
         printWindow.document.write('<div class="invoice">');
         printWindow.document.write('<div class="header"><h2>Sarasi Shoe Corner</h2></div>');
-        printWindow.document.write('<div class="details"><span>Sale Date</span> May 07, 2025</div>');
+        printWindow.document.write('<div class="details"><span>Sale ID</span> ' + (invoice.tempSaleId || 'N/A') + '</div>');
+        printWindow.document.write('<div class="details"><span>Sale Date</span> ' + (new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })) + '</div>');
         printWindow.document.write('<div class="details"><span>Product ID</span> ' + (invoice.productId || 'N/A') + '</div>');
         printWindow.document.write('<div class="details"><span>Product Name</span> ' + (invoice.productName || 'N/A') + '</div>');
         printWindow.document.write('<div class="details"><span>Selling Price</span> ' + (parseFloat(invoice.sellingPrice) || 0).toFixed(2) + '</div>');
@@ -168,13 +235,16 @@ const SalesManagement = () => {
         printWindow.document.write('<div class="contact">0711234567<br>Sarasi Shoe Corner,<br>Debarawewa,<br>Tissamaharama.</div>');
         printWindow.document.write('</div>');
         printWindow.document.write('</body></html>');
+        printWindow.document.close();
         printWindow.print();
         printWindow.close();
         setInvoice(null);
+        setTempSaleId(null);
     };
 
     const handleCancelInvoice = () => {
         setInvoice(null);
+        setTempSaleId(null);
     };
 
     return (
@@ -242,7 +312,7 @@ const SalesManagement = () => {
                                         <Grid item xs={12} sm={6}>
                                             <TextField
                                                 label="Selling Price"
-                                                value={selectedProduct.sellingPrice || '0.00'}
+                                                value={(parseFloat(selectedProduct.sellingPrice) || 0).toFixed(2)}
                                                 fullWidth
                                                 disabled
                                             />
@@ -268,6 +338,7 @@ const SalesManagement = () => {
                                                     fullWidth
                                                     required
                                                     variant="outlined"
+                                                    inputProps={{ min: 0 }}
                                                 />
                                             </Grid>
                                         ) : (
@@ -299,6 +370,7 @@ const SalesManagement = () => {
                                                             fullWidth
                                                             required
                                                             variant="outlined"
+                                                            inputProps={{ min: 0 }}
                                                         />
                                                     </Grid>
                                                     <Grid item xs={2}>
@@ -324,6 +396,16 @@ const SalesManagement = () => {
                                                 value={formData.discount}
                                                 onChange={handleInputChange}
                                                 fullWidth
+                                                variant="outlined"
+                                                inputProps={{ min: 0 }}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField
+                                                label="Total Selling Price"
+                                                value={totalSellingPrice.toFixed(2)}
+                                                fullWidth
+                                                disabled
                                                 variant="outlined"
                                             />
                                         </Grid>
@@ -359,7 +441,8 @@ const SalesManagement = () => {
                                         Sarasi Shoe Corner
                                     </Typography>
                                 </Box>
-                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Sale Date</span> May 07, 2025</Box>
+                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Sale ID</span> {invoice.tempSaleId || 'N/A'}</Box>
+                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Sale Date</span> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product ID</span> {invoice.productId || 'N/A'}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product Name</span> {invoice.productName || 'N/A'}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Selling Price</span> {(parseFloat(invoice.sellingPrice) || 0).toFixed(2)}</Box>
@@ -438,14 +521,14 @@ const SalesManagement = () => {
                                         </TableCell>
                                         <TableCell>
                                             {sale.sizeQuantities
-                                                ? Object.entries(sale.sizeQuantities)
+                                                ? Object.entries(tempQuantities[sale.id] || sale.sizeQuantities)
                                                     .map(([size, qty]) => `Size ${size}: ${qty}`)
                                                     .join(', ')
-                                                : sale.quantity || 'N/A'}
+                                                : (tempQuantities[sale.id] !== undefined ? tempQuantities[sale.id] : sale.quantity) || 'N/A'}
                                         </TableCell>
-                                        <TableCell>{sale.sellingPrice?.toFixed(2) || '0.00'}</TableCell>
-                                        <TableCell>{sale.discount?.toFixed(2) || '0.00'}</TableCell>
-                                        <TableCell>{sale.totalSellingPrice?.toFixed(2) || '0.00'}</TableCell>
+                                        <TableCell>{(parseFloat(sale.sellingPrice) || 0).toFixed(2)}</TableCell>
+                                        <TableCell>{(parseFloat(sale.discount) || 0).toFixed(2)}</TableCell>
+                                        <TableCell>{calculateSaleTotalSellingPrice(sale).toFixed(2)}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
