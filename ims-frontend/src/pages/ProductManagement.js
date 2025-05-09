@@ -778,8 +778,8 @@ const ProductManagement = () => {
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Brand</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Subcategories</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sizes & Quantities</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Purchase Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Selling Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}> Unit Purchase Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Unit Selling Price</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Purchase Date</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
                             </TableRow>

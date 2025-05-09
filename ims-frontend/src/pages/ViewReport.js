@@ -1,68 +1,52 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import {
-    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, FormControl, InputLabel, Select, MenuItem, CircularProgress
+    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, TextField, CircularProgress
 } from '@mui/material';
 import OwnerNavbar from '../components/OwnerNavbar';
-import './styles.css';
 
 // Utility function to normalize date to YYYY-MM-DD string
 const normalizeDate = (date) => {
-    if (!date) {
-        console.warn('Date is null or undefined');
-        return new Date().toISOString().split('T')[0]; // Fallback to current date
-    }
-    if (typeof date === 'string') {
-        return date.includes('T') ? date.split('T')[0] : date;
-    }
-    if (date instanceof Date) {
-        return date.toISOString().split('T')[0];
-    }
-    console.warn('Unexpected date format:', date);
-    return new Date().toISOString().split('T')[0]; // Fallback
+    if (!date) return new Date().toISOString().split('T')[0];
+    if (typeof date === 'string') return date.includes('T') ? date.split('T')[0] : date;
+    if (date instanceof Date) return date.toISOString().split('T')[0];
+    return new Date().toISOString().split('T')[0];
 };
 
 // Utility function to format currency safely
 const formatCurrency = (value) => {
-    if (value === null || value === undefined || isNaN(value)) {
-        return '0.00';
-    }
+    if (value === null || value === undefined || isNaN(value)) return '0.00';
     return Number(value).toFixed(2);
+};
+
+// Utility function to get today's date in a formal format
+const getFormattedDate = () => {
+    const today = new Date();
+    return today.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 const ViewReport = () => {
     const [products, setProducts] = useState([]);
     const [sales, setSales] = useState([]);
-    const [returns, setReturns] = useState([]);
-    const [categoryFilter, setCategoryFilter] = useState('');
+    const [filterValue, setFilterValue] = useState(''); // Changed from categoryFilter to filterValue
     const [tabValue, setTabValue] = useState(0); // 0: Daily, 1: Monthly, 2: Yearly
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
     const BASE_URL = 'http://localhost:8080';
 
-    const categoryOptions = [
-        '', 'Shoes', 'Water Bottle', 'Bags', 'Slippers', 'Shoe Polish', 'Socks', 'Other Accessories'
-    ];
-
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
             setError('');
             try {
-                const [productsResponse, salesResponse, returnsResponse] = await Promise.all([
+                const [productsResponse, salesResponse] = await Promise.all([
                     axios.get(`${BASE_URL}/api/products`),
-                    axios.get(`${BASE_URL}/api/sales`),
-                    axios.get(`${BASE_URL}/api/returns`).catch(() => ({ data: [] })) // Handle missing returns endpoint
+                    axios.get(`${BASE_URL}/api/sales`)
                 ]);
-                console.log('Fetched Products:', productsResponse.data);
-                console.log('Fetched Sales:', salesResponse.data);
-                console.log('Fetched Returns:', returnsResponse.data);
                 setProducts(productsResponse.data);
-                setSales(salesResponse.data);
-                setReturns(returnsResponse.data);
+                setSales(salesResponse.data.data || salesResponse.data);
             } catch (error) {
-                console.error('Error fetching data:', error);
                 setError(`Failed to load report data: ${error.message}`);
             } finally {
                 setLoading(false);
@@ -71,441 +55,448 @@ const ViewReport = () => {
         fetchData();
     }, []);
 
-    // Process sales data with profit calculations
+    // Process sales data with corrected calculations
     const calculateReports = () => {
-        console.log('Calculating reports with:', {
-            productsCount: products.length,
-            salesCount: sales.length,
-            returnsCount: returns.length,
-            categoryFilter
-        });
-
-        // Log product and sale IDs for debugging
-        const productIds = products.map(p => p.productId);
-        const saleProductIds = sales.map(s => s.productId);
-        const returnedSaleIds = returns.map(r => r.saleId);
-        console.log('Product IDs:', productIds);
-        console.log('Sale Product IDs:', saleProductIds);
-        console.log('Returned Sale IDs:', returnedSaleIds);
-
-        // Filter out returned sales and products with status 'RETURNED'
-        const activeSales = sales.filter(sale => {
-            const product = products.find(p => p.productId === sale.productId);
-            const isReturned = product?.status === 'RETURNED' || returns.some(ret => ret.saleId === sale.id);
-            if (isReturned) {
-                console.log('Sale excluded due to return or RETURNED status:', {
-                    saleId: sale.id,
-                    productId: sale.productId,
-                    productStatus: product?.status,
-                    isInReturns: returns.some(ret => ret.saleId === sale.id)
-                });
-            }
-            return !isReturned;
-        });
-
-        // Filter sales by category (case-insensitive)
-        const filteredSales = categoryFilter
-            ? activeSales.filter(sale => {
-                const product = products.find(p => p.productId === sale.productId);
-                const productCategory = (product?.category || '').toLowerCase();
-                const filterCategory = categoryFilter.toLowerCase();
-                const matches = product && productCategory === filterCategory;
-                if (!matches) {
-                    console.log('Sale filtered out due to category mismatch:', {
-                        saleId: sale.id,
-                        productId: sale.productId,
-                        productCategory,
-                        filterCategory
-                    });
-                }
-                return matches;
+        // Filter sales by Product ID or Sale ID
+        const filteredSales = filterValue
+            ? sales.filter(sale => {
+                const productIdMatch = sale.productId.toString().includes(filterValue);
+                const saleIdMatch = sale.id.toString().includes(filterValue);
+                return productIdMatch || saleIdMatch;
             })
-            : activeSales;
+            : sales;
 
-        console.log('Filtered Sales:', filteredSales);
-
-        // Calculate metrics per sale
-        const salesWithProfit = filteredSales.map(sale => {
+        // Calculate details for each sale
+        const salesDetails = filteredSales.map(sale => {
             const product = products.find(p => p.productId === sale.productId);
-            if (!product) {
-                console.warn(`Product not found for sale:`, {
-                    saleId: sale.id,
-                    productId: sale.productId
-                });
-                return null;
-            }
-            const normalizedDate = normalizeDate(sale.saleDate);
-            const salePrice = typeof sale.salePrice === 'number' && !isNaN(sale.salePrice)
-                ? sale.salePrice
-                : parseFloat(sale.salePrice || 0);
-            const purchasePrice = typeof product.purchasePrice === 'number' && !isNaN(product.purchasePrice)
-                ? product.purchasePrice
-                : parseFloat(product.purchasePrice || 0);
-            const sellingPrice = typeof product.sellingPrice === 'number' && !isNaN(product.sellingPrice)
-                ? product.sellingPrice
-                : parseFloat(product.sellingPrice || 0);
-            const discount = typeof sale.discount === 'number' && !isNaN(sale.discount)
-                ? sale.discount
-                : parseFloat(sale.discount || 0);
+            if (!product) return null;
 
-            // Log invalid data
-            if (isNaN(salePrice) || salePrice < 0) {
-                console.warn(`Invalid salePrice for sale:`, {
-                    saleId: sale.id,
-                    productId: sale.productId,
-                    salePrice: sale.salePrice
-                });
-            }
-            if (isNaN(purchasePrice)) {
-                console.warn(`Invalid purchasePrice for product:`, {
-                    productId: product.productId,
-                    purchasePrice: product.purchasePrice
-                });
-            }
-            if (isNaN(sellingPrice)) {
-                console.warn(`Invalid sellingPrice for product:`, {
-                    productId: product.productId,
-                    sellingPrice: product.sellingPrice
-                });
-            }
+            const unitPurchasePrice = parseFloat(product.purchasePrice) || 0;
+            const unitSellingPrice = parseFloat(sale.sellingPrice) || 0;
+            const discount = parseFloat(sale.discount) || 0;
 
-            const discountPrice = sellingPrice * discount; // discount is a fraction (e.g., 0.1 for 10%)
-            const finalSoldPrice = salePrice; // salePrice is final price after discount
-            const profit = finalSoldPrice - purchasePrice;
+            // Calculate total quantity for this sale
+            const totalQuantity = sale.sizeQuantities
+                ? Object.values(sale.sizeQuantities).reduce((sum, qty) => sum + (parseInt(qty) || 0), 0)
+                : (parseInt(sale.quantity) || 0);
+
+            // Calculate purchase price for this sale (Unit Purchase Price * Quantity)
+            const totalPurchasePrice = unitPurchasePrice * totalQuantity;
+
+            // Calculate total selling price for this sale (from SalesManagement.js logic)
+            const totalSellingPrice = (unitSellingPrice * totalQuantity) - discount;
+
+            // Calculate profit for this sale
+            const profit = totalSellingPrice - totalPurchasePrice;
 
             return {
                 productId: sale.productId,
                 saleId: sale.id,
-                productName: product.productName || 'Unknown',
-                category: product.category || 'Unknown',
-                purchasePrice: isNaN(purchasePrice) ? 0 : purchasePrice,
-                sellingPrice: isNaN(sellingPrice) ? 0 : sellingPrice,
-                discountPrice: isNaN(discountPrice) ? 0 : discountPrice,
-                finalSoldPrice: isNaN(finalSoldPrice) ? 0 : finalSoldPrice,
-                profit: isNaN(profit) ? 0 : profit,
-                saleDate: normalizedDate
+                productName: product.name || 'Unknown',
+                totalQuantity,
+                totalPurchasePrice,
+                totalSellingPrice,
+                discount,
+                profit,
+                saleDate: normalizeDate(sale.saleDate),
             };
-        }).filter(sale => sale !== null && sale.saleDate !== null);
+        }).filter(sale => sale !== null);
 
-        console.log('Sales with Profit:', salesWithProfit);
+        // Sort salesDetails by saleId in descending order (LIFO)
+        salesDetails.sort((a, b) => b.saleId - a.saleId);
 
         // Daily report
         const dailyReport = {};
-        salesWithProfit.forEach(sale => {
+        salesDetails.forEach(sale => {
             const date = sale.saleDate;
             if (!dailyReport[date]) {
                 dailyReport[date] = {
-                    totalPurchasePrice: 0,
+                    sales: [],
                     totalSellingPrice: 0,
-                    totalDiscountPrice: 0,
-                    totalFinalSoldPrice: 0,
-                    totalProfit: 0
+                    totalPurchasePrice: 0,
+                    totalProfit: 0,
                 };
             }
-            dailyReport[date].totalPurchasePrice += sale.purchasePrice;
-            dailyReport[date].totalSellingPrice += sale.sellingPrice;
-            dailyReport[date].totalDiscountPrice += sale.discountPrice;
-            dailyReport[date].totalFinalSoldPrice += sale.finalSoldPrice;
+            dailyReport[date].sales.push(sale);
+            dailyReport[date].totalSellingPrice += sale.totalSellingPrice;
+            dailyReport[date].totalPurchasePrice += sale.totalPurchasePrice;
             dailyReport[date].totalProfit += sale.profit;
         });
 
         // Monthly report
         const monthlyReport = {};
-        salesWithProfit.forEach(sale => {
+        salesDetails.forEach(sale => {
             const month = sale.saleDate.slice(0, 7);
             if (!monthlyReport[month]) {
                 monthlyReport[month] = {
-                    totalPurchasePrice: 0,
                     totalSellingPrice: 0,
-                    totalDiscountPrice: 0,
-                    totalFinalSoldPrice: 0,
-                    totalProfit: 0
+                    totalPurchasePrice: 0,
+                    totalProfit: 0,
                 };
             }
-            monthlyReport[month].totalPurchasePrice += sale.purchasePrice;
-            monthlyReport[month].totalSellingPrice += sale.sellingPrice;
-            monthlyReport[month].totalDiscountPrice += sale.discountPrice;
-            monthlyReport[month].totalFinalSoldPrice += sale.finalSoldPrice;
+            monthlyReport[month].totalSellingPrice += sale.totalSellingPrice;
+            monthlyReport[month].totalPurchasePrice += sale.totalPurchasePrice;
             monthlyReport[month].totalProfit += sale.profit;
         });
 
         // Yearly report
         const yearlyReport = {};
-        salesWithProfit.forEach(sale => {
+        salesDetails.forEach(sale => {
             const year = sale.saleDate.slice(0, 4);
             if (!yearlyReport[year]) {
                 yearlyReport[year] = {
-                    totalPurchasePrice: 0,
-                    totalSellingPrice: 0,
-                    totalDiscountPrice: 0,
-                    totalFinalSoldPrice: 0,
-                    totalProfit: 0
+                    totalProfit: 0,
                 };
             }
-            yearlyReport[year].totalPurchasePrice += sale.purchasePrice;
-            yearlyReport[year].totalSellingPrice += sale.sellingPrice;
-            yearlyReport[year].totalDiscountPrice += sale.discountPrice;
-            yearlyReport[year].totalFinalSoldPrice += sale.finalSoldPrice;
             yearlyReport[year].totalProfit += sale.profit;
         });
 
-        // Total aggregates
-        const totals = salesWithProfit.reduce((acc, sale) => ({
-            totalPurchasePrice: acc.totalPurchasePrice + sale.purchasePrice,
-            totalSellingPrice: acc.totalSellingPrice + sale.sellingPrice,
-            totalDiscountPrice: acc.totalDiscountPrice + sale.discountPrice,
-            totalFinalSoldPrice: acc.totalFinalSoldPrice + sale.finalSoldPrice,
-            totalProfit: acc.totalProfit + sale.profit
-        }), {
-            totalPurchasePrice: 0,
-            totalSellingPrice: 0,
-            totalDiscountPrice: 0,
-            totalFinalSoldPrice: 0,
-            totalProfit: 0
-        });
-
-        console.log('Reports:', { dailyReport, monthlyReport, yearlyReport, totals });
-
-        return { salesWithProfit, dailyReport, monthlyReport, yearlyReport, totals };
+        return { salesDetails, dailyReport, monthlyReport, yearlyReport };
     };
 
-    const { salesWithProfit, dailyReport, monthlyReport, yearlyReport, totals } = calculateReports();
+    const { salesDetails, dailyReport, monthlyReport, yearlyReport } = calculateReports();
 
     const handleTabChange = (event, newValue) => {
         setTabValue(newValue);
     };
 
-    const handleCategoryFilterChange = (e) => {
-        setCategoryFilter(e.target.value);
+    const handleFilterChange = (e) => {
+        setFilterValue(e.target.value);
     };
+
+    const renderSummaryBox = (totalSellingPrice, totalPurchasePrice, totalProfit) => (
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#e0f7fa', p: 2, borderRadius: 1, mb: 2 }}>
+            <Typography variant="subtitle1">Total Selling Price: Rs. {formatCurrency(totalSellingPrice)}</Typography>
+            <Typography variant="subtitle1">Total Purchase Price: Rs. {formatCurrency(totalPurchasePrice)}</Typography>
+            <Typography variant="subtitle1">Total Profit: Rs. {formatCurrency(totalProfit)}</Typography>
+        </Box>
+    );
 
     const renderTable = () => {
         if (tabValue === 0) {
             return (
-                <TableContainer component={Paper} className="table-container">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Date</TableCell>
-                                <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Selling Price</TableCell>
-                                <TableCell>Total Discount Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
-                                <TableCell>Total Profit</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {Object.entries(dailyReport)
-                                .sort((a, b) => new Date(b[0]) - new Date(a[0]))
-                                .map(([date, data]) => (
-                                    <TableRow key={date}>
-                                        <TableCell>{date}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalSellingPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalDiscountPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            {Object.keys(dailyReport).length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center">No data available</TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                <Box>
+                    {Object.entries(dailyReport)
+                        .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Sort dates in descending order (LIFO)
+                        .map(([date, data]) => (
+                            <Box key={date} sx={{ mb: 4 }}>
+                                <Typography variant="h6" className="section-title">
+                                    Date: {date}
+                                </Typography>
+                                {renderSummaryBox(data.totalSellingPrice, data.totalPurchasePrice, data.totalProfit)}
+                                <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
+                                    <Table stickyHeader>
+                                        <TableHead>
+                                            <TableRow sx={{ bgcolor: '#1976d2' }}>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Sale ID</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Purchase Price</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Selling Price</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Discount</TableCell>
+                                                <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Profit</TableCell>
+                                            </TableRow>
+                                        </TableHead>
+                                        <TableBody>
+                                            {data.sales
+                                                .sort((a, b) => b.saleId - a.saleId) // Sort sales by saleId in descending order (LIFO)
+                                                .slice(0, 25) // Limit to 25 items
+                                                .map((sale, index) => (
+                                                    <TableRow key={sale.saleId} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
+                                                        <TableCell>{sale.productId}</TableCell>
+                                                        <TableCell>{sale.saleId}</TableCell>
+                                                        <TableCell>Rs. {formatCurrency(sale.totalPurchasePrice)}</TableCell>
+                                                        <TableCell>Rs. {formatCurrency(sale.totalSellingPrice)}</TableCell>
+                                                        <TableCell>Rs. {formatCurrency(sale.discount)}</TableCell>
+                                                        <TableCell>Rs. {formatCurrency(sale.profit)}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            {data.sales.length > 25 && (
+                                                <TableRow>
+                                                    <TableCell colSpan={6} align="center">
+                                                        <Typography variant="caption" color="textSecondary">
+                                                            Scroll to view more sales...
+                                                        </Typography>
+                                                    </TableCell>
+                                                </TableRow>
+                                            )}
+                                        </TableBody>
+                                    </Table>
+                                </TableContainer>
+                            </Box>
+                        ))}
+                    {Object.keys(dailyReport).length === 0 && (
+                        <Typography align="center" className="no-data">
+                            No data available for the selected filter.
+                        </Typography>
+                    )}
+                </Box>
             );
         } else if (tabValue === 1) {
+            const totalMonthlySellingPrice = Object.values(monthlyReport).reduce((sum, data) => sum + data.totalSellingPrice, 0);
+            const totalMonthlyPurchasePrice = Object.values(monthlyReport).reduce((sum, data) => sum + data.totalPurchasePrice, 0);
+            const totalMonthlyProfit = Object.values(monthlyReport).reduce((sum, data) => sum + data.totalProfit, 0);
+
             return (
-                <TableContainer component={Paper} className="table-container">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Month</TableCell>
-                                <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Selling Price</TableCell>
-                                <TableCell>Total Discount Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
-                                <TableCell>Total Profit</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {Object.entries(monthlyReport)
-                                .sort((a, b) => b[0].localeCompare(a[0]))
-                                .map(([month, data]) => (
-                                    <TableRow key={month}>
-                                        <TableCell>{month}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalSellingPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalDiscountPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            {Object.keys(monthlyReport).length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center">No data available</TableCell>
+                <Box>
+                    {renderSummaryBox(totalMonthlySellingPrice, totalMonthlyPurchasePrice, totalMonthlyProfit)}
+                    <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
+                        <Table stickyHeader>
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: '#1976d2' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Month</TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Total Selling Price</TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Total Purchase Price</TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Total Profit</TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {Object.entries(monthlyReport)
+                                    .sort((a, b) => b[0].localeCompare(a[0])) // Sort months in descending order (LIFO)
+                                    .slice(0, 25) // Limit to 25 items
+                                    .map(([month, data], index) => (
+                                        <TableRow key={month} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
+                                            <TableCell>{month}</TableCell>
+                                            <TableCell>Rs. {formatCurrency(data.totalSellingPrice)}</TableCell>
+                                            <TableCell>Rs. {formatCurrency(data.totalPurchasePrice)}</TableCell>
+                                            <TableCell>Rs. {formatCurrency(data.totalProfit)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                {Object.keys(monthlyReport).length > 25 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center">
+                                            <Typography variant="caption" color="textSecondary">
+                                                Scroll to view more months...
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {Object.keys(monthlyReport).length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={4} align="center" className="no-data">
+                                            No data available for the selected filter.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
             );
         } else {
+            const totalYearlyProfit = Object.values(yearlyReport).reduce((sum, data) => sum + data.totalProfit, 0);
+
             return (
-                <TableContainer component={Paper} className="table-container">
-                    <Table>
-                        <TableHead>
-                            <TableRow>
-                                <TableCell>Year</TableCell>
-                                <TableCell>Total Purchase Price</TableCell>
-                                <TableCell>Total Selling Price</TableCell>
-                                <TableCell>Total Discount Price</TableCell>
-                                <TableCell>Total Final Sold Price</TableCell>
-                                <TableCell>Total Profit</TableCell>
-                            </TableRow>
-                        </TableHead>
-                        <TableBody>
-                            {Object.entries(yearlyReport)
-                                .sort((a, b) => b[0] - a[0])
-                                .map(([year, data]) => (
-                                    <TableRow key={year}>
-                                        <TableCell>{year}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalSellingPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalDiscountPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalFinalSoldPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(data.totalProfit)}</TableCell>
-                                    </TableRow>
-                                ))}
-                            {Object.keys(yearlyReport).length === 0 && (
-                                <TableRow>
-                                    <TableCell colSpan={6} align="center">No data available</TableCell>
+                <Box>
+                    {renderSummaryBox(
+                        salesDetails.reduce((sum, sale) => sum + sale.totalSellingPrice, 0),
+                        salesDetails.reduce((sum, sale) => sum + sale.totalPurchasePrice, 0),
+                        totalYearlyProfit
+                    )}
+                    <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
+                        <Table stickyHeader>
+                            <TableHead>
+                                <TableRow sx={{ bgcolor: '#1976d2' }}>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Year</TableCell>
+                                    <TableCell sx={{ color: '#fff', fontWeight: '600', borderBottom: '2px solid #1565c0' }}>Total Profit</TableCell>
                                 </TableRow>
-                            )}
-                        </TableBody>
-                    </Table>
-                </TableContainer>
+                            </TableHead>
+                            <TableBody>
+                                {Object.entries(yearlyReport)
+                                    .sort((a, b) => b[0] - a[0]) // Sort years in descending order (LIFO)
+                                    .slice(0, 25) // Limit to 25 items
+                                    .map(([year, data], index) => (
+                                        <TableRow key={year} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
+                                            <TableCell>{year}</TableCell>
+                                            <TableCell>Rs. {formatCurrency(data.totalProfit)}</TableCell>
+                                        </TableRow>
+                                    ))}
+                                {Object.keys(yearlyReport).length > 25 && (
+                                    <TableRow>
+                                        <TableCell colSpan={2} align="center">
+                                            <Typography variant="caption" color="textSecondary">
+                                                Scroll to view more years...
+                                            </Typography>
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                                {Object.keys(yearlyReport).length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={2} align="center" className="no-data">
+                                            No data available for the selected filter.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </TableContainer>
+                </Box>
             );
         }
     };
 
-    console.log('Rendering ViewReport:', { loading, error, salesWithProfitLength: salesWithProfit.length });
-
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4 }} className="page-container">
-                <Typography variant="h4" component="h1" gutterBottom className="page-title">
-                    Profit Report
-                </Typography>
+            <Box sx={{ p: 4, bgcolor: '#f5f7fa' }} className="page-container">
+                <Box className="report-header">
+                    <Typography variant="h4" component="h1" className="report-title">
+                        Profit Report
+                    </Typography>
+                    <Typography variant="subtitle2" className="report-date">
+                        Generated on: {getFormattedDate()}
+                    </Typography>
+                </Box>
 
-                <Box sx={{ mb: 3 }}>
-                    <FormControl sx={{ width: '200px' }}>
-                        <InputLabel>Filter Category</InputLabel>
-                        <Select
-                            value={categoryFilter}
-                            onChange={handleCategoryFilterChange}
-                            label="Filter Category"
-                        >
-                            {categoryOptions.map((cat) => (
-                                <MenuItem key={cat} value={cat}>
-                                    {cat ? cat : 'All Categories'}
-                                </MenuItem>
-                            ))}
-                        </Select>
-                    </FormControl>
+                <Box className="filter-section">
+                    <TextField
+                        label="Filter by Product ID or Sale ID"
+                        value={filterValue}
+                        onChange={handleFilterChange}
+                        sx={{ width: '250px' }}
+                        variant="outlined"
+                        className="filter-input"
+                    />
                 </Box>
 
                 {error && (
-                    <Typography color="error" sx={{ mb: 2 }}>
+                    <Typography color="error" className="error-message">
                         {error}
                     </Typography>
                 )}
 
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-                        <CircularProgress />
+                        <CircularProgress color="primary" />
                     </Box>
                 ) : (
                     <>
-                        <Typography variant="h6" gutterBottom>Product-Level Profit</Typography>
-                        <TableContainer component={Paper} className="table-container" sx={{ mb: 4 }}>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Product ID</TableCell>
-                                        <TableCell>Sale ID</TableCell>
-                                        <TableCell>Product Name</TableCell>
-                                        <TableCell>Category</TableCell>
-                                        <TableCell>Sale Date</TableCell>
-                                        <TableCell>Purchase Price</TableCell>
-                                        <TableCell>Selling Price</TableCell>
-                                        <TableCell>Discount Price</TableCell>
-                                        <TableCell>Final Sold Price</TableCell>
-                                        <TableCell>Profit</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    {salesWithProfit.map((sale, index) => (
-                                        <TableRow key={`${sale.saleId}-${index}`}>
-                                            <TableCell>{sale.productId}</TableCell>
-                                            <TableCell>{sale.saleId}</TableCell>
-                                            <TableCell>{sale.productName}</TableCell>
-                                            <TableCell>{sale.category}</TableCell>
-                                            <TableCell>{sale.saleDate}</TableCell>
-                                            <TableCell>{formatCurrency(sale.purchasePrice)}</TableCell>
-                                            <TableCell>{formatCurrency(sale.sellingPrice)}</TableCell>
-                                            <TableCell>{formatCurrency(sale.discountPrice)}</TableCell>
-                                            <TableCell>{formatCurrency(sale.finalSoldPrice)}</TableCell>
-                                            <TableCell>{formatCurrency(sale.profit)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    {salesWithProfit.length === 0 && (
-                                        <TableRow>
-                                            <TableCell colSpan={10} align="center">
-                                                No sales data available
-                                            </TableCell>
-                                        </TableRow>
-                                    )}
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-                        <Typography variant="h6" gutterBottom>Total Aggregates</Typography>
-                        <TableContainer component={Paper} className="table-container" sx={{ mb: 4 }}>
-                            <Table>
-                                <TableHead>
-                                    <TableRow>
-                                        <TableCell>Total Purchase Price</TableCell>
-                                        <TableCell>Total Selling Price</TableCell>
-                                        <TableCell>Total Discount Price</TableCell>
-                                        <TableCell>Total Final Sold Price</TableCell>
-                                        <TableCell>Total Profit</TableCell>
-                                    </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                    <TableRow>
-                                        <TableCell>{formatCurrency(totals.totalPurchasePrice)}</TableCell>
-                                        <TableCell>{formatCurrency(totals.totalSellingPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(totals.totalDiscountPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(totals.totalFinalSoldPrice)}</TableCell>
-                                        <TableCell>{formatCurrency(totals.totalProfit)}</TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </TableContainer>
-
-                        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
-                            <Tab label="Daily" />
-                            <Tab label="Monthly" />
-                            <Tab label="Yearly" />
+                        <Tabs
+                            value={tabValue}
+                            onChange={handleTabChange}
+                            className="report-tabs"
+                            TabIndicatorProps={{ style: { backgroundColor: '#1976d2' } }}
+                        >
+                            <Tab label="Daily Report" className="tab-item" />
+                            <Tab label="Monthly Report" className="tab-item" />
+                            <Tab label="Yearly Report" className="tab-item" />
                         </Tabs>
-                        {renderTable()}
+                        <Box className="table-wrapper">
+                            {renderTable()}
+                        </Box>
                     </>
                 )}
             </Box>
+
+            <style>
+                {`
+                    .page-container {
+                        min-height: 100vh;
+                        background-color: #f5f7fa;
+                        font-family: 'Roboto', sans-serif;
+                    }
+
+                    .report-header {
+                        text-align: center;
+                        margin-bottom: 2rem;
+                        padding: 1.5rem;
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                    }
+
+                    .report-title {
+                        color: #1a3c34;
+                        font-weight: 600;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .report-date {
+                        color: #666;
+                        font-style: italic;
+                    }
+
+                    .filter-section {
+                        display: flex;
+                        justify-content: center;
+                        margin-bottom: 2rem;
+                    }
+
+                    .filter-input {
+                        background-color: #fff;
+                        border-radius: 4px;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .filter-input .MuiInputLabel-root {
+                        color: #333;
+                        font-weight: 500;
+                    }
+
+                    .error-message {
+                        text-align: center;
+                        margin-bottom: 1rem;
+                        font-weight: 500;
+                    }
+
+                    .report-tabs {
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                        margin-bottom: 2rem;
+                    }
+
+                    .tab-item {
+                        text-transform: none;
+                        font-weight: 500;
+                        color: #666;
+                        padding: 12px 24px;
+                    }
+
+                    .tab-item.Mui-selected {
+                        color: #1976d2;
+                        font-weight: 600;
+                    }
+
+                    .table-wrapper {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+
+                    .table-container {
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                        margin-bottom: 2rem;
+                    }
+
+                    .table-row-even {
+                        background-color: #ffffff;
+                    }
+
+                    .table-row-odd {
+                        background-color: #f9fafb;
+                    }
+
+                    .MuiTableCell-root {
+                        padding: 12px 16px;
+                        border-bottom: 1px solid #e0e0e0;
+                        color: #333;
+                    }
+
+                    .section-title {
+                        color: #1a3c34;
+                        font-weight: 500;
+                        margin-bottom: 1rem;
+                        border-left: 4px solid #1976d2;
+                        padding-left: 1rem;
+                    }
+
+                    .no-data {
+                        color: #666;
+                        font-style: italic;
+                        padding: 2rem;
+                    }
+                `}
+            </style>
         </>
     );
 };
