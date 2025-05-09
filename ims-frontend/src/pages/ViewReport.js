@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import {
-    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, TextField, CircularProgress
+    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, TextField, CircularProgress, Button,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import OwnerNavbar from '../components/OwnerNavbar';
+import DownloadIcon from '@mui/icons-material/Download';
+import Tooltip from '@mui/material/Tooltip';
 
 // Utility function to normalize date to MM/DD/YYYY string to match SalesManagement.js
 const normalizeDate = (date) => {
@@ -37,6 +39,8 @@ const ViewReport = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
+    const [scriptsLoaded, setScriptsLoaded] = useState(false);
+    const reportRef = useRef(null);
 
     const BASE_URL = 'http://localhost:8080';
 
@@ -63,7 +67,29 @@ const ViewReport = () => {
             }
         };
         fetchData();
+
+        // Load jsPDF and html2canvas dynamically via CDN
+        const script1 = document.createElement('script');
+        script1.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script1.onload = () => checkScriptsLoaded();
+        document.body.appendChild(script1);
+
+        const script2 = document.createElement('script');
+        script2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+        script2.onload = () => checkScriptsLoaded();
+        document.body.appendChild(script2);
+
+        return () => {
+            document.body.removeChild(script1);
+            document.body.removeChild(script2);
+        };
     }, []);
+
+    const checkScriptsLoaded = () => {
+        if (window.html2canvas && window.jspdf && window.jspdf.jsPDF) {
+            setScriptsLoaded(true);
+        }
+    };
 
     // Process sales data with corrected calculations
     const calculateReports = () => {
@@ -197,6 +223,66 @@ const ViewReport = () => {
         </Box>
     );
 
+    const downloadReport = () => {
+        if (!scriptsLoaded) {
+            alert('PDF libraries are not loaded yet. Please wait a moment.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const html2canvas = window.html2canvas;
+
+        const input = reportRef.current;
+        html2canvas(input).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = 210; // A4 width in mm
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`Profit_Report_${getFormattedDate().replace(/ /g, '_')}.pdf`);
+        });
+    };
+
+    const printReport = () => {
+        if (!scriptsLoaded) {
+            alert('PDF libraries are not loaded yet. Please wait a moment.');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const html2canvas = window.html2canvas;
+
+        const input = reportRef.current;
+        html2canvas(input).then((canvas) => {
+            const imgData = canvas.toDataURL('image/png');
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = 210; // A4 width in mm
+            const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+            const pdfDataUri = pdf.output('datauristring');
+            const printWindow = window.open();
+            printWindow.document.write(`
+                <html>
+                <head><title>Profit Report</title></head>
+                <body style="margin:0;"><img src="${pdfDataUri}" style="width:100%;"></body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+            printWindow.close();
+        });
+    };
+
     const renderTable = () => {
         if (tabValue === 0) {
             const currentDate = normalizeDate(selectedDate);
@@ -206,7 +292,7 @@ const ViewReport = () => {
             const totalProfit = Object.values(dateData).reduce((sum, data) => sum + data.totalProfit, 0);
 
             return (
-                <Box>
+                <Box ref={reportRef}>
                     {renderSummaryBox(totalSellingPrice, totalPurchasePrice, totalProfit, currentDate)}
                     {Object.keys(dateData).length > 0 ? (
                         Object.entries(dateData).map(([productId, data]) => (
@@ -264,7 +350,7 @@ const ViewReport = () => {
             const totalMonthlyProfit = Object.values(monthlyReport).reduce((sum, data) => sum + data.totalProfit, 0);
 
             return (
-                <Box>
+                <Box ref={reportRef}>
                     {renderSummaryBox(totalMonthlySellingPrice, totalMonthlyPurchasePrice, totalMonthlyProfit, 'All Months')}
                     <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
                         <Table stickyHeader>
@@ -313,7 +399,7 @@ const ViewReport = () => {
             const totalYearlyProfit = Object.values(yearlyReport).reduce((sum, data) => sum + data.totalProfit, 0);
 
             return (
-                <Box>
+                <Box ref={reportRef}>
                     {renderSummaryBox(
                         salesDetails.reduce((sum, sale) => sum + sale.totalSellingPrice, 0),
                         salesDetails.reduce((sum, sale) => sum + sale.totalPurchasePrice, 0),
@@ -393,6 +479,16 @@ const ViewReport = () => {
                             sx={{ width: '250px' }}
                         />
                     </LocalizationProvider>
+                    <Tooltip title="Download Report (PDF)">
+                        <Button
+                            variant="contained"
+                            onClick={downloadReport}
+                            disabled={!scriptsLoaded}
+                            sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' }, height: '56px', minWidth: '56px', padding: '8px' }}
+                        >
+                            <DownloadIcon />
+                        </Button>
+                    </Tooltip>
                 </Box>
 
                 {error && (
@@ -531,6 +627,31 @@ const ViewReport = () => {
                         color: #666;
                         font-style: italic;
                         padding: 2rem;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .filter-section, .report-tabs, .MuiTabs-root {
+                            display: none;
+                        }
+                        .table-container {
+                            box-shadow: none;
+                            max-height: none;
+                            overflow-y: visible;
+                        }
+                        .table {
+                            page-break-inside: auto;
+                        }
+                        .table tr {
+                            page-break-inside: avoid;
+                            page-break-after: auto;
+                        }
+                        .summary {
+                            page-break-inside: avoid;
+                        }
                     }
                 `}
             </style>
