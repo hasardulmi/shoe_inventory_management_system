@@ -24,8 +24,10 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
         setAvailableSizes([]);
 
         // Only fetch sizes if conditions are met and IDs are valid
-        const isValidProductId = formData.productId && !isNaN(parseInt(formData.productId)) && parseInt(formData.productId) > 0;
+        const isValidProductId = formData.productId && formData.productId.trim().length > 0; // Allow non-numeric IDs
         const isValidSaleId = formData.saleId && !isNaN(parseInt(formData.saleId)) && parseInt(formData.saleId) > 0;
+
+        console.log('useEffect triggered - productId:', formData.productId, 'saleId:', formData.saleId, 'condition:', formData.condition);
 
         if (formData.condition === 'ADD_PRODUCT_QUANTITY' && isValidSaleId && isValidProductId) {
             fetchSaleSizes();
@@ -64,8 +66,8 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
     };
 
     const fetchProductSizes = async () => {
-        if (!formData.productId) {
-            console.warn("fetchProductSizes called with empty productId");
+        if (!formData.productId || formData.productId.trim() === '') {
+            console.warn("fetchProductSizes called with empty or invalid productId");
             setError("Product ID is required to fetch product sizes");
             return;
         }
@@ -74,7 +76,12 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
             console.log(`Fetching product sizes for productId: ${formData.productId}`);
             const response = await axios.get(`http://localhost:8080/api/returns/product-sizes/${formData.productId}`);
             console.log("fetchProductSizes response:", response.data);
-            setAvailableSizes(Object.entries(response.data).map(([size, quantity]) => ({ size, available: quantity })));
+            if (response.data && typeof response.data === 'object') {
+                setAvailableSizes(Object.entries(response.data).map(([size, quantity]) => ({ size, available: quantity })));
+            } else {
+                console.warn("Unexpected response format:", response.data);
+                setAvailableSizes([]);
+            }
         } catch (err) {
             console.error("Error in fetchProductSizes:", err);
             setError(`Error fetching product sizes: ${err.response?.data?.error || err.message}`);
@@ -218,7 +225,7 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
                                 onChange={handleInputChange}
                                 fullWidth
                                 variant="outlined"
-                                type="text" // Changed to text for testing
+                                type="text"
                                 inputProps={{ min: 1 }}
                             />
                         </Grid>

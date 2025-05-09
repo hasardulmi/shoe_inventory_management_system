@@ -400,15 +400,7 @@ const SalesManagement = () => {
                                                 inputProps={{ min: 0 }}
                                             />
                                         </Grid>
-                                        <Grid item xs={12} sm={6}>
-                                            <TextField
-                                                label="Total Selling Price"
-                                                value={totalSellingPrice.toFixed(2)}
-                                                fullWidth
-                                                disabled
-                                                variant="outlined"
-                                            />
-                                        </Grid>
+
                                     </>
                                 )}
                             </Grid>
@@ -445,10 +437,10 @@ const SalesManagement = () => {
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Sale Date</span> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product ID</span> {invoice.productId || 'N/A'}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product Name</span> {invoice.productName || 'N/A'}</Box>
-                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Selling Price</span> {(parseFloat(invoice.sellingPrice) || 0).toFixed(2)}</Box>
+                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}> Unit Selling Price</span> {(parseFloat(invoice.sellingPrice) || 0).toFixed(2)}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Quantity</span> {invoice.quantity || (invoice.sizeQuantities ? Object.entries(invoice.sizeQuantities).map(([size, qty]) => `Size ${size}: ${qty}`).join(', ') : 'N/A')}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Discount</span> {(parseFloat(invoice.discount) || 0).toFixed(2)}</Box>
-                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Total Selling Price</span> {(parseFloat(invoice.totalSellingPrice) || 0).toFixed(2)}</Box>
+                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Selling Price</span> {(parseFloat(invoice.totalSellingPrice) || 0).toFixed(2)}</Box>
                                 <Box sx={{ textAlign: 'center', marginTop: 2 }}>Thank You!</Box>
                                 <Box sx={{ position: 'absolute', bottom: 20, right: 20, textAlign: 'right' }}>
                                     0711234567<br />Sarasi Shoe Corner,<br />Debarawewa,<br />Tissamaharama.
@@ -480,9 +472,9 @@ const SalesManagement = () => {
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Category</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Subcategories</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Quantity</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Selling Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Unit Selling Price</TableCell>
                                 <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Discount</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Total Selling Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Selling Price</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
