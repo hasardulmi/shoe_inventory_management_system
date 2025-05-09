@@ -23,21 +23,24 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
         setError('');
         setAvailableSizes([]);
 
-        // Fetch sizes based on condition and input fields
-        if (formData.condition === 'ADD_PRODUCT_QUANTITY' && formData.saleId && formData.productId) {
-            fetchSaleSizes(); // Fetch sale sizes for 'Add Product Quantity'
-        } else if (formData.condition === 'DEDUCT_SALE_QUANTITY' && formData.saleId) {
-            fetchSaleSizes(); // Fetch sale sizes for 'Deduct Sale Quantity'
-        } else if (formData.condition === 'DEDUCT_PRODUCT_QUANTITY' && formData.productId) {
-            fetchProductSizes(); // Fetch product sizes for 'Deduct Product Quantity'
-        } else if (formData.saleId && formData.productId) {
-            fetchSaleSizes(); // Default to sale sizes when both IDs are present
-        } else if (formData.saleId) {
-            fetchSaleSizes(); // Only Sale ID: fetch from Sale
-        } else if (formData.productId) {
-            fetchProductSizes(); // Only Product ID: fetch from Product
+        // Only fetch sizes if conditions are met and IDs are valid
+        const isValidProductId = formData.productId && !isNaN(parseInt(formData.productId)) && parseInt(formData.productId) > 0;
+        const isValidSaleId = formData.saleId && !isNaN(parseInt(formData.saleId)) && parseInt(formData.saleId) > 0;
+
+        if (formData.condition === 'ADD_PRODUCT_QUANTITY' && isValidSaleId && isValidProductId) {
+            fetchSaleSizes();
+        } else if (formData.condition === 'DEDUCT_SALE_QUANTITY' && isValidSaleId) {
+            fetchSaleSizes();
+        } else if (formData.condition === 'DEDUCT_PRODUCT_QUANTITY' && isValidProductId) {
+            fetchProductSizes();
+        } else if (isValidSaleId && isValidProductId) {
+            fetchSaleSizes();
+        } else if (isValidSaleId) {
+            fetchSaleSizes();
+        } else if (isValidProductId) {
+            fetchProductSizes();
         }
-    }, [formData.productId, formData.saleId, formData.condition]);
+    }, [formData.condition, formData.saleId, formData.productId]);
 
     const fetchSaleSizes = async () => {
         if (!formData.saleId) {
@@ -83,7 +86,12 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        setFormData(prev => ({ ...prev, [name]: value }));
+        console.log(`Input change - ${name}: ${value}`); // Debug log
+        setFormData(prev => {
+            const updatedFormData = { ...prev, [name]: value };
+            console.log(`Updated formData - ${name}: ${updatedFormData[name]}`); // Debug updated state
+            return updatedFormData;
+        });
     };
 
     const handleSizeQuantityChange = (index, field, value) => {
@@ -210,6 +218,8 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
                                 onChange={handleInputChange}
                                 fullWidth
                                 variant="outlined"
+                                type="text" // Changed to text for testing
+                                inputProps={{ min: 1 }}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -220,6 +230,8 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
                                 onChange={handleInputChange}
                                 fullWidth
                                 variant="outlined"
+                                type="number"
+                                inputProps={{ min: 1 }}
                             />
                         </Grid>
                         <Grid item xs={12} sm={6}>
@@ -267,7 +279,9 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
                                             <MenuItem value="">Select Size</MenuItem>
                                             {availableSizes.map((s, idx) => (
                                                 <MenuItem key={idx} value={s.size}>
-                                                    {s.size} (Available: {s.available})
+                                                    {s.size} {formData.condition === 'DEDUCT_PRODUCT_QUANTITY'
+                                                    ? `(Available Products: ${s.available})`
+                                                    : `(Sold Products: ${s.available})`}
                                                 </MenuItem>
                                             ))}
                                         </Select>

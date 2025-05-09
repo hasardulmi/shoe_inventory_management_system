@@ -23,14 +23,39 @@ const ReturnManagement = () => {
         setLoading(true);
         try {
             const response = await axios.get('http://localhost:8080/api/returns');
-            console.log("Returns API Response:", response.data);
+            console.log("Returns API Response (Full):", response.data);
             const returnsData = response.data.data || [];
             if (!Array.isArray(returnsData)) {
                 console.warn("Returns data is not an array, forcing empty array:", returnsData);
                 setReturns([]);
             } else {
-                console.log("Fetched Returns:", returnsData);
-                setReturns(returnsData);
+                console.log("Fetched Returns with Details:", returnsData.map(r => ({
+                    id: r.id,
+                    productId: r.productId,
+                    productName: r.productName,
+                    saleId: r.saleId,
+                    returnDate: r.returnDate,
+                    reason: r.reason,
+                    sizeQuantities: r.sizeQuantities
+                })));
+                // Fallback to fetch productName from sale if missing
+                const updatedReturns = await Promise.all(returnsData.map(async (returnItem) => {
+                    if (!returnItem.productName || returnItem.productName === 'Product Not Found') {
+                        if (returnItem.saleId) {
+                            try {
+                                const saleResponse = await axios.get('http://localhost:8080/api/sales');
+                                const sales = Array.isArray(saleResponse.data) ? saleResponse.data : (saleResponse.data.data || []);
+                                const sale = sales.find(s => parseInt(s.id) === parseInt(returnItem.saleId));
+                                return { ...returnItem, productName: sale ? sale.productName || 'Sale Not Found' : 'Sale Not Found' };
+                            } catch (err) {
+                                console.error("Error fetching sale for productName:", err);
+                                return { ...returnItem, productName: 'Sale Not Found' };
+                            }
+                        }
+                    }
+                    return returnItem;
+                }));
+                setReturns(updatedReturns);
             }
         } catch (err) {
             console.error("Error fetching returns:", err.response ? err.response.data : err.message);
