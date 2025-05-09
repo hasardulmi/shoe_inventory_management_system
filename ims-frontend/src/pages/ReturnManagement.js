@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
-    CircularProgress, Typography, Snackbar, Alert
+    CircularProgress, Typography, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
 import { Add } from '@mui/icons-material';
 import axios from 'axios';
@@ -14,6 +14,8 @@ const ReturnManagement = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState('');
+    const [selectedSaleId, setSelectedSaleId] = useState('');
 
     useEffect(() => {
         fetchReturns();
@@ -71,6 +73,35 @@ const ReturnManagement = () => {
         fetchReturns();
     };
 
+    // Handle Product ID filter change
+    const handleProductIdFilterChange = (e) => {
+        setSelectedProductId(e.target.value);
+    };
+
+    // Handle Sale ID filter change
+    const handleSaleIdFilterChange = (e) => {
+        setSelectedSaleId(e.target.value);
+    };
+
+    // Get filtered returns based on Product ID and Sale ID
+    const getFilteredReturns = () => {
+        let filteredReturns = returns;
+
+        if (selectedProductId) {
+            filteredReturns = filteredReturns.filter(returnItem => String(returnItem.productId) === String(selectedProductId));
+        }
+
+        if (selectedSaleId) {
+            filteredReturns = filteredReturns.filter(returnItem => String(returnItem.saleId) === String(selectedSaleId));
+        }
+
+        return filteredReturns;
+    };
+
+    // Extract unique Product IDs and Sale IDs for dropdowns
+    const uniqueProductIds = [...new Set(returns.map(returnItem => returnItem.productId).filter(Boolean))];
+    const uniqueSaleIds = [...new Set(returns.map(returnItem => returnItem.saleId).filter(Boolean))];
+
     return (
         <>
             <OwnerNavbar />
@@ -96,6 +127,40 @@ const ReturnManagement = () => {
                 >
                     Add Return
                 </Button>
+
+                {/* Product ID and Sale ID Filters */}
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                    <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
+                        <InputLabel>Product ID</InputLabel>
+                        <Select
+                            value={selectedProductId}
+                            onChange={handleProductIdFilterChange}
+                            label="Product ID"
+                        >
+                            <MenuItem value="">All Product IDs</MenuItem>
+                            {uniqueProductIds.map((productId, index) => (
+                                <MenuItem key={index} value={productId}>
+                                    {productId}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
+                        <InputLabel>Sale ID</InputLabel>
+                        <Select
+                            value={selectedSaleId}
+                            onChange={handleSaleIdFilterChange}
+                            label="Sale ID"
+                        >
+                            <MenuItem value="">All Sale IDs</MenuItem>
+                            {uniqueSaleIds.map((saleId, index) => (
+                                <MenuItem key={index} value={saleId}>
+                                    {saleId}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
 
                 <ReturnDialog
                     open={openDialog}
@@ -123,8 +188,8 @@ const ReturnManagement = () => {
                                         <CircularProgress />
                                     </TableCell>
                                 </TableRow>
-                            ) : returns.length > 0 ? (
-                                [...returns].reverse().map(returnItem => (
+                            ) : getFilteredReturns().length > 0 ? (
+                                [...getFilteredReturns()].reverse().map(returnItem => (
                                     <TableRow key={returnItem.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
                                         <TableCell>{returnItem.id || 'N/A'}</TableCell>
                                         <TableCell>{returnItem.productId || 'N/A'}</TableCell>
