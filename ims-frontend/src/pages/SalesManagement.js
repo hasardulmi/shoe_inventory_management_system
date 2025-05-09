@@ -26,6 +26,7 @@ const SalesManagement = () => {
     const [totalSellingPrice, setTotalSellingPrice] = useState(0);
     const [tempSaleId, setTempSaleId] = useState(null);
     const [tempQuantities, setTempQuantities] = useState({});
+    const [selectedCategory, setSelectedCategory] = useState('');
 
     useEffect(() => {
         fetchData();
@@ -247,6 +248,17 @@ const SalesManagement = () => {
         setTempSaleId(null);
     };
 
+    const handleCategoryChange = (e) => {
+        setSelectedCategory(e.target.value);
+    };
+
+    const getFilteredSales = () => {
+        if (!selectedCategory) return sales; // If no category selected, return all sales
+        return sales.filter(sale => sale.category?.toLowerCase() === selectedCategory.toLowerCase());
+    };
+
+    const uniqueCategories = [...new Set(sales.map(sale => sale.category).filter(Boolean))];
+
     return (
         <>
             <OwnerNavbar />
@@ -272,6 +284,25 @@ const SalesManagement = () => {
                 >
                     Record New Sale
                 </Button>
+
+                {/* Category Filter */}
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+                    <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
+                        <InputLabel>Category</InputLabel>
+                        <Select
+                            value={selectedCategory}
+                            onChange={handleCategoryChange}
+                            label="Category"
+                        >
+                            <MenuItem value="">All Categories</MenuItem>
+                            {uniqueCategories.map((category, index) => (
+                                <MenuItem key={index} value={category.toLowerCase()}>
+                                    {category}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                </Box>
 
                 <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
                     <DialogTitle sx={{ bgcolor: '#10b981', color: 'white', py: 2 }}>
@@ -400,7 +431,6 @@ const SalesManagement = () => {
                                                 inputProps={{ min: 0 }}
                                             />
                                         </Grid>
-
                                     </>
                                 )}
                             </Grid>
@@ -484,8 +514,8 @@ const SalesManagement = () => {
                                         <CircularProgress />
                                     </TableCell>
                                 </TableRow>
-                            ) : sales.length > 0 ? (
-                                [...sales].reverse().map(sale => (
+                            ) : getFilteredSales().length > 0 ? (
+                                [...getFilteredSales()].reverse().map(sale => (
                                     <TableRow key={sale.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
                                         <TableCell>{sale.id || 'N/A'}</TableCell>
                                         <TableCell>{sale.productId || 'N/A'}</TableCell>
