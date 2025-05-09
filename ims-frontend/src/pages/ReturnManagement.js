@@ -168,17 +168,17 @@ const ReturnManagement = () => {
                     onSuccess={handleSuccess}
                 />
 
-                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-                    <Table>
+                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px', maxHeight: '600px', overflowY: 'auto', position: 'relative' }}>
+                    <Table stickyHeader>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#3b82f6' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Return ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sale ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Return Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Reason</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sizes & Quantities</TableCell>
+                            <TableRow sx={{ bgcolor: '#3b82f6', position: 'sticky', top: 0, zIndex: 1 }}>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product Name</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sale ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Reason</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sizes & Quantities</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -222,6 +222,40 @@ const ReturnManagement = () => {
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <style>
+                    {`
+                        .MuiTableHead-root {
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableCell-head {
+                            color: white;
+                            font-weight: bold;
+                            border-bottom: 2px solid #1565c0;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableContainer-root {
+                            position: relative;
+                            max-height: 600px;
+                            overflow-y: auto;
+                        }
+
+                        .MuiTableRow-root:hover {
+                            background-color: #f9fafb;
+                        }
+
+                        .MuiTableCell-body {
+                            padding: 12px 16px;
+                            border-bottom: 1px solid #e0e0e0;
+                            color: #333;
+                        }
+                    `}
+                </style>
             </Box>
         </>
     );
