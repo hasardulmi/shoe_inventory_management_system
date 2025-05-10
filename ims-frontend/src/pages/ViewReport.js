@@ -111,8 +111,11 @@ const ViewReport = () => {
             const unitSellingPrice = parseFloat(sale.sellingPrice) || 0;
             const discount = parseFloat(sale.discount) || 0;
 
+            // Check if sizeQuantities exists and has entries
+            const hasSizeQuantities = sale.sizeQuantities && Object.keys(sale.sizeQuantities).length > 0;
+
             // Calculate total quantity for this sale
-            const totalQuantity = sale.sizeQuantities
+            const totalQuantity = hasSizeQuantities
                 ? Object.values(sale.sizeQuantities).reduce((sum, qty) => sum + (parseInt(qty) || 0), 0)
                 : (parseInt(sale.quantity) || 0);
 

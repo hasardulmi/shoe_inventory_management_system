@@ -42,103 +42,123 @@ function OwnerDashboard() {
     const [topProductsData, setTopProductsData] = useState({ labels: [], percentages: [] });
     const [profitData, setProfitData] = useState({ labels: [], data: [] });
 
-    const fetchData = async () => {
-        try {
-            const [productsRes, salesRes] = await Promise.all([
-                axios.get('http://localhost:8080/api/products'),
-                axios.get('http://localhost:8080/api/sales'),
-            ]);
+    useEffect(() => {
+        let isMounted = true;
 
-            // Extract data from API responses
-            const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.data || []);
-            const sales = Array.isArray(salesRes.data) ? salesRes.data : (salesRes.data.data || []);
+        const fetchAndSetData = async () => {
+            try {
+                const [productsRes, salesRes] = await Promise.all([
+                    axios.get('http://localhost:8080/api/products'),
+                    axios.get('http://localhost:8080/api/sales'),
+                ]);
 
-            // Overview Data
-            const totalProducts = products.length;
-            const totalSales = sales.length;
-            const totalStock = products.reduce((sum, p) => {
-                return sum + (p.hasSizes && p.sizeQuantities
-                    ? Object.values(p.sizeQuantities).reduce((s, q) => s + (parseInt(q.quantity) || 0), 0)
-                    : parseInt(p.quantity) || 0);
-            }, 0);
-            const outOfStock = products.filter(p =>
-                !p.hasSizes ? (parseInt(p.quantity) || 0) === 0 :
-                    (p.sizeQuantities && Object.values(p.sizeQuantities).every(q => (parseInt(q.quantity) || 0) === 0))
-            ).length;
-            setOverviewData({ totalProducts, totalSales, totalStock, outOfStock });
+                if (!isMounted) return;
 
-            // User Data (placeholders until actual endpoints are available)
-            const totalEmployees = 0; // Replace with /api/employees if implemented
-            const totalOwners = 2;    // Replace with /api/users if implemented
-            setUserData({ totalOwners, totalEmployees });
+                const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.data || []);
+                const sales = Array.isArray(salesRes.data) ? salesRes.data : (salesRes.data.data || []);
 
-            // Inventory Data
-            const soldProducts = sales.reduce((sum, s) => {
-                return sum + (s.sizeQuantities
-                    ? Object.values(s.sizeQuantities).reduce((s, q) => s + (parseInt(q) || 0), 0)
-                    : parseInt(s.quantity) || 0);
-            }, 0);
-            setInventoryData({ soldProducts, totalProducts: totalStock });
+                if (!products || !Array.isArray(products)) {
+                    console.error("Products data is not an array:", products);
+                    return;
+                }
+                if (!sales || !Array.isArray(sales)) {
+                    console.error("Sales data is not an array:", sales);
+                    return;
+                }
 
-            // Top 10 Most Sold Products
-            const productSales = {};
-            sales.forEach(sale => {
-                const quantity = sale.sizeQuantities
-                    ? Object.values(sale.sizeQuantities).reduce((s, q) => s + (parseInt(q) || 0), 0)
-                    : parseInt(sale.quantity) || 0;
-                productSales[sale.productId] = (productSales[sale.productId] || 0) + quantity;
-            });
-            const totalSold = Object.values(productSales).reduce((sum, qty) => sum + qty, 0);
-            const topProducts = Object.entries(productSales)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10)
-                .map(([productId, quantity]) => {
-                    const product = products.find(p => p.productId === productId);
-                    return {
-                        productName: product ? product.productName : productId,
-                        soldPercentage: totalSold > 0 ? ((quantity / totalSold) * 100).toFixed(2) : 0,
-                    };
-                });
-            const labels = topProducts.map(p => p.productName);
-            const percentages = topProducts.map(p => parseFloat(p.soldPercentage));
-            setTopProductsData({ labels, percentages });
+                const totalProducts = products.length;
+                const totalSales = sales.length;
+                const totalStock = products.reduce((sum, p) => {
+                    return sum + (p.hasSizes && p.sizeQuantities
+                        ? p.sizeQuantities.reduce((s, q) => s + (parseInt(q.quantity) || 0), 0)
+                        : parseInt(p.quantity) || 0);
+                }, 0);
+                const outOfStock = products.filter(p =>
+                    !p.hasSizes ? (parseInt(p.quantity) || 0) === 0 :
+                        (p.sizeQuantities && p.sizeQuantities.every(q => (parseInt(q.quantity) || 0) === 0))
+                ).length;
+                setOverviewData({ totalProducts, totalSales, totalStock, outOfStock });
 
-            // Months vs Profit
-            const monthlyProfit = {};
-            sales.forEach(sale => {
-                const product = products.find(p => p.productId === sale.productId);
-                if (product) {
-                    const date = new Date(sale.saleDate).toISOString().slice(0, 7); // YYYY-MM
-                    const quantity = sale.sizeQuantities
+                const totalEmployees = 0;
+                const totalOwners = 2;
+                setUserData({ totalOwners, totalEmployees });
+
+                // Calculate total sold products by summing both sizeQuantities and quantity
+                const soldProducts = sales.reduce((sum, s) => {
+                    if (s.sizeQuantities && Object.keys(s.sizeQuantities).length > 0) {
+                        // For products with sizes, sum the quantities in sizeQuantities
+                        return sum + Object.values(s.sizeQuantities).reduce((total, qty) => total + (parseInt(qty) || 0), 0);
+                    } else {
+                        // For products without sizes, use the quantity field
+                        return sum + (parseInt(s.quantity) || 0);
+                    }
+                }, 0);
+                setInventoryData({ soldProducts, totalProducts: totalStock });
+
+                const productSales = {};
+                sales.forEach(sale => {
+                    if (!sale.productId) return;
+                    const quantity = sale.sizeQuantities && Object.keys(sale.sizeQuantities).length > 0
                         ? Object.values(sale.sizeQuantities).reduce((s, q) => s + (parseInt(q) || 0), 0)
                         : parseInt(sale.quantity) || 0;
-                    const purchasePrice = parseFloat(product.purchasePrice) || 0;
-                    const sellingPrice = parseFloat(sale.sellingPrice) || 0;
-                    const discount = parseFloat(sale.discount) || 0;
-                    const profit = (sellingPrice - purchasePrice) * quantity - discount;
-                    monthlyProfit[date] = (monthlyProfit[date] || 0) + profit;
-                }
-            });
-            const profitLabels = Object.keys(monthlyProfit).sort();
-            const profitDataValues = profitLabels.map(date => monthlyProfit[date] || 0);
-            setProfitData({ labels: profitLabels, data: profitDataValues });
-        } catch (err) {
-            console.error('Error fetching dashboard data:', err);
-        }
-    };
+                    productSales[sale.productId] = (productSales[sale.productId] || 0) + quantity;
+                });
+                const totalSold = Object.values(productSales).reduce((sum, qty) => sum + qty, 0) || 1;
+                const topProducts = Object.entries(productSales)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 10)
+                    .map(([productId, quantity]) => {
+                        const product = products.find(p => p.productId === productId);
+                        return {
+                            productName: product ? product.productName : productId,
+                            soldPercentage: totalSold > 0 ? (quantity / totalSold) * 100 : 0,
+                        };
+                    });
+                const labels = topProducts.map(p => p.productName || "Unknown Product");
+                const percentages = topProducts.map(p => p.soldPercentage || 0);
+                setTopProductsData({ labels, percentages });
 
-    useEffect(() => {
-        fetchData();
-        const intervalId = setInterval(fetchData, 5000);
-        return () => clearInterval(intervalId);
+                const monthlyProfit = {};
+                sales.forEach(sale => {
+                    if (!sale.saleDate || !sale.productId) return;
+                    const product = products.find(p => p.productId === sale.productId);
+                    if (product) {
+                        const date = new Date(sale.saleDate).toISOString().slice(0, 7);
+                        const quantity = sale.sizeQuantities && Object.keys(sale.sizeQuantities).length > 0
+                            ? Object.values(sale.sizeQuantities).reduce((s, q) => s + (parseInt(q) || 0), 0)
+                            : parseInt(sale.quantity) || 0;
+                        const purchasePrice = parseFloat(product.purchasePrice) || 0;
+                        const sellingPrice = parseFloat(sale.sellingPrice) || 0;
+                        const discount = parseFloat(sale.discount) || 0;
+                        const profit = (sellingPrice - purchasePrice) * quantity - discount;
+                        monthlyProfit[date] = (monthlyProfit[date] || 0) + profit;
+                    }
+                });
+                const profitLabels = Object.keys(monthlyProfit).sort();
+                const profitDataValues = profitLabels.map(date => monthlyProfit[date] || 0);
+                setProfitData({ labels: profitLabels, data: profitDataValues });
+            } catch (err) {
+                console.error('Error fetching dashboard data:', err);
+            }
+        };
+
+        fetchAndSetData();
+        const intervalId = setInterval(fetchAndSetData, 5000);
+
+        return () => {
+            isMounted = false;
+            clearInterval(intervalId);
+        };
     }, []);
 
-    // Chart Data
     const inventoryChartData = {
         labels: ['Sold Products', 'Available Products'],
         datasets: [
             {
-                data: [inventoryData.soldProducts, inventoryData.totalProducts - inventoryData.soldProducts],
+                data: [
+                    inventoryData.soldProducts || 0,
+                    inventoryData.totalProducts || 0 // totalProducts already represents the remaining stock
+                ],
                 backgroundColor: ['#36A2EB', '#FF6384'],
             },
         ],
@@ -172,7 +192,6 @@ function OwnerDashboard() {
             <OwnerNavbar />
             <Container maxWidth="lg" sx={{ py: 4, background: '#e3f2fd', minHeight: '100vh' }}>
                 <Box sx={{ bgcolor: '#fff', p: 3, borderRadius: 1, boxShadow: 2 }}>
-                    {/* Overview Section */}
                     <Box sx={{ mb: 4 }}>
                         <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
                             Over View
@@ -221,7 +240,6 @@ function OwnerDashboard() {
                         </Grid>
                     </Box>
 
-                    {/* Charts Section */}
                     <Grid container spacing={3}>
                         <Grid item xs={4}>
                             <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1, height: '100%' }}>
