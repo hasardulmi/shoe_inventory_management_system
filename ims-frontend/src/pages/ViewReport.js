@@ -3,14 +3,18 @@ import axios from 'axios';
 import {
     Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Tabs, Tab, TextField, CircularProgress
 } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import OwnerNavbar from '../components/OwnerNavbar';
 
-// Utility function to normalize date to YYYY-MM-DD string
+// Utility function to normalize date to MM/DD/YYYY string to match SalesManagement.js
 const normalizeDate = (date) => {
-    if (!date) return new Date().toISOString().split('T')[0];
-    if (typeof date === 'string') return date.includes('T') ? date.split('T')[0] : date;
-    if (date instanceof Date) return date.toISOString().split('T')[0];
-    return new Date().toISOString().split('T')[0];
+    if (!date) return new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    const parsedDate = new Date(date);
+    return !isNaN(parsedDate.getTime())
+        ? parsedDate.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })
+        : new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' });
 };
 
 // Utility function to format currency safely
@@ -28,10 +32,11 @@ const getFormattedDate = () => {
 const ViewReport = () => {
     const [products, setProducts] = useState([]);
     const [sales, setSales] = useState([]);
-    const [filterValue, setFilterValue] = useState(''); // Changed from categoryFilter to filterValue
+    const [filterValue, setFilterValue] = useState(''); // Filter by Product ID or Sale ID
     const [tabValue, setTabValue] = useState(0); // 0: Daily, 1: Monthly, 2: Yearly
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [selectedDate, setSelectedDate] = useState(new Date()); // Default to current date
 
     const BASE_URL = 'http://localhost:8080';
 
@@ -45,7 +50,12 @@ const ViewReport = () => {
                     axios.get(`${BASE_URL}/api/sales`)
                 ]);
                 setProducts(productsResponse.data);
-                setSales(salesResponse.data.data || salesResponse.data);
+                const salesData = salesResponse.data.data || salesResponse.data;
+                setSales(salesData);
+                console.log('Raw sales data:', salesData);
+                salesData.forEach(sale => {
+                    console.log(`Sale ID: ${sale.id}, Sale Date (raw): ${sale.saleDate}, Normalized: ${normalizeDate(sale.saleDate)}`);
+                });
             } catch (error) {
                 setError(`Failed to load report data: ${error.message}`);
             } finally {
@@ -80,10 +90,10 @@ const ViewReport = () => {
                 ? Object.values(sale.sizeQuantities).reduce((sum, qty) => sum + (parseInt(qty) || 0), 0)
                 : (parseInt(sale.quantity) || 0);
 
-            // Calculate purchase price for this sale (Unit Purchase Price * Quantity)
+            // Calculate purchase price for this sale
             const totalPurchasePrice = unitPurchasePrice * totalQuantity;
 
-            // Calculate total selling price for this sale (from SalesManagement.js logic)
+            // Calculate total selling price for this sale
             const totalSellingPrice = (unitSellingPrice * totalQuantity) - discount;
 
             // Calculate profit for this sale
@@ -105,28 +115,35 @@ const ViewReport = () => {
         // Sort salesDetails by saleId in descending order (LIFO)
         salesDetails.sort((a, b) => b.saleId - a.saleId);
 
-        // Daily report
+        // Daily report: filter sales by selected date
+        const currentDate = normalizeDate(selectedDate);
+        console.log(`Selected Date (normalized): ${currentDate}`);
+        const dailySales = salesDetails.filter(sale => sale.saleDate === currentDate);
         const dailyReport = {};
-        salesDetails.forEach(sale => {
+        dailySales.forEach(sale => {
             const date = sale.saleDate;
             if (!dailyReport[date]) {
-                dailyReport[date] = {
+                dailyReport[date] = {};
+            }
+            if (!dailyReport[date][sale.productId]) {
+                dailyReport[date][sale.productId] = {
                     sales: [],
                     totalSellingPrice: 0,
                     totalPurchasePrice: 0,
                     totalProfit: 0,
                 };
             }
-            dailyReport[date].sales.push(sale);
-            dailyReport[date].totalSellingPrice += sale.totalSellingPrice;
-            dailyReport[date].totalPurchasePrice += sale.totalPurchasePrice;
-            dailyReport[date].totalProfit += sale.profit;
+            dailyReport[date][sale.productId].sales.push(sale);
+            dailyReport[date][sale.productId].totalSellingPrice += sale.totalSellingPrice;
+            dailyReport[date][sale.productId].totalPurchasePrice += sale.totalPurchasePrice;
+            dailyReport[date][sale.productId].totalProfit += sale.profit;
         });
 
         // Monthly report
         const monthlyReport = {};
         salesDetails.forEach(sale => {
-            const month = sale.saleDate.slice(0, 7);
+            const date = new Date(sale.saleDate.split('/').reverse().join('-')); // Convert MM/DD/YYYY to Date
+            const month = date.toISOString().slice(0, 7); // YYYY-MM
             if (!monthlyReport[month]) {
                 monthlyReport[month] = {
                     totalSellingPrice: 0,
@@ -142,7 +159,8 @@ const ViewReport = () => {
         // Yearly report
         const yearlyReport = {};
         salesDetails.forEach(sale => {
-            const year = sale.saleDate.slice(0, 4);
+            const date = new Date(sale.saleDate.split('/').reverse().join('-')); // Convert MM/DD/YYYY to Date
+            const year = date.getFullYear().toString();
             if (!yearlyReport[year]) {
                 yearlyReport[year] = {
                     totalProfit: 0,
@@ -164,26 +182,35 @@ const ViewReport = () => {
         setFilterValue(e.target.value);
     };
 
-    const renderSummaryBox = (totalSellingPrice, totalPurchasePrice, totalProfit) => (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', bgcolor: '#e0f7fa', p: 2, borderRadius: 1, mb: 2 }}>
-            <Typography variant="subtitle1">Total Selling Price: Rs. {formatCurrency(totalSellingPrice)}</Typography>
-            <Typography variant="subtitle1">Total Purchase Price: Rs. {formatCurrency(totalPurchasePrice)}</Typography>
-            <Typography variant="subtitle1">Total Profit: Rs. {formatCurrency(totalProfit)}</Typography>
+    const handleDateChange = (newDate) => {
+        setSelectedDate(newDate);
+    };
+
+    const renderSummaryBox = (totalSellingPrice, totalPurchasePrice, totalProfit, date) => (
+        <Box sx={{ display: 'flex', flexDirection: 'column', bgcolor: '#e0f7fa', p: 2, borderRadius: 1, mb: 2 }}>
+            <Typography variant="h6" sx={{ mb: 1 }}>Date: {date}</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="subtitle1">Total Selling Price: Rs. {formatCurrency(totalSellingPrice)}</Typography>
+                <Typography variant="subtitle1">Total Purchase Price: Rs. {formatCurrency(totalPurchasePrice)}</Typography>
+                <Typography variant="subtitle1">Total Profit: Rs. {formatCurrency(totalProfit)}</Typography>
+            </Box>
         </Box>
     );
 
     const renderTable = () => {
         if (tabValue === 0) {
+            const currentDate = normalizeDate(selectedDate);
+            const dateData = dailyReport[currentDate] || {};
+            const totalSellingPrice = Object.values(dateData).reduce((sum, data) => sum + data.totalSellingPrice, 0);
+            const totalPurchasePrice = Object.values(dateData).reduce((sum, data) => sum + data.totalPurchasePrice, 0);
+            const totalProfit = Object.values(dateData).reduce((sum, data) => sum + data.totalProfit, 0);
+
             return (
                 <Box>
-                    {Object.entries(dailyReport)
-                        .sort((a, b) => new Date(b[0]) - new Date(a[0])) // Sort dates in descending order (LIFO)
-                        .map(([date, data]) => (
-                            <Box key={date} sx={{ mb: 4 }}>
-                                <Typography variant="h6" className="section-title">
-                                    Date: {date}
-                                </Typography>
-                                {renderSummaryBox(data.totalSellingPrice, data.totalPurchasePrice, data.totalProfit)}
+                    {renderSummaryBox(totalSellingPrice, totalPurchasePrice, totalProfit, currentDate)}
+                    {Object.keys(dateData).length > 0 ? (
+                        Object.entries(dateData).map(([productId, data]) => (
+                            <Box key={productId} sx={{ mb: 4 }}>
                                 <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
                                     <Table stickyHeader>
                                         <TableHead>
@@ -198,8 +225,8 @@ const ViewReport = () => {
                                         </TableHead>
                                         <TableBody>
                                             {data.sales
-                                                .sort((a, b) => b.saleId - a.saleId) // Sort sales by saleId in descending order (LIFO)
-                                                .slice(0, 25) // Limit to 25 items
+                                                .sort((a, b) => b.saleId - a.saleId)
+                                                .slice(0, 25)
                                                 .map((sale, index) => (
                                                     <TableRow key={sale.saleId} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                                                         <TableCell>{sale.productId}</TableCell>
@@ -223,10 +250,10 @@ const ViewReport = () => {
                                     </Table>
                                 </TableContainer>
                             </Box>
-                        ))}
-                    {Object.keys(dailyReport).length === 0 && (
+                        ))
+                    ) : (
                         <Typography align="center" className="no-data">
-                            No data available for the selected filter.
+                            No sales available for {currentDate}.
                         </Typography>
                     )}
                 </Box>
@@ -238,7 +265,7 @@ const ViewReport = () => {
 
             return (
                 <Box>
-                    {renderSummaryBox(totalMonthlySellingPrice, totalMonthlyPurchasePrice, totalMonthlyProfit)}
+                    {renderSummaryBox(totalMonthlySellingPrice, totalMonthlyPurchasePrice, totalMonthlyProfit, 'All Months')}
                     <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
                         <Table stickyHeader>
                             <TableHead>
@@ -251,8 +278,8 @@ const ViewReport = () => {
                             </TableHead>
                             <TableBody>
                                 {Object.entries(monthlyReport)
-                                    .sort((a, b) => b[0].localeCompare(a[0])) // Sort months in descending order (LIFO)
-                                    .slice(0, 25) // Limit to 25 items
+                                    .sort((a, b) => b[0].localeCompare(a[0]))
+                                    .slice(0, 25)
                                     .map(([month, data], index) => (
                                         <TableRow key={month} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                                             <TableCell>{month}</TableCell>
@@ -290,7 +317,8 @@ const ViewReport = () => {
                     {renderSummaryBox(
                         salesDetails.reduce((sum, sale) => sum + sale.totalSellingPrice, 0),
                         salesDetails.reduce((sum, sale) => sum + sale.totalPurchasePrice, 0),
-                        totalYearlyProfit
+                        totalYearlyProfit,
+                        'All Years'
                     )}
                     <TableContainer component={Paper} className="table-container" sx={{ maxHeight: '600px', overflowY: 'auto' }}>
                         <Table stickyHeader>
@@ -302,8 +330,8 @@ const ViewReport = () => {
                             </TableHead>
                             <TableBody>
                                 {Object.entries(yearlyReport)
-                                    .sort((a, b) => b[0] - a[0]) // Sort years in descending order (LIFO)
-                                    .slice(0, 25) // Limit to 25 items
+                                    .sort((a, b) => b[0] - a[0])
+                                    .slice(0, 25)
                                     .map(([year, data], index) => (
                                         <TableRow key={year} className={index % 2 === 0 ? 'table-row-even' : 'table-row-odd'}>
                                             <TableCell>{year}</TableCell>
@@ -347,7 +375,7 @@ const ViewReport = () => {
                     </Typography>
                 </Box>
 
-                <Box className="filter-section">
+                <Box className="filter-section" sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 2 }}>
                     <TextField
                         label="Filter by Product ID or Sale ID"
                         value={filterValue}
@@ -356,6 +384,15 @@ const ViewReport = () => {
                         variant="outlined"
                         className="filter-input"
                     />
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <DatePicker
+                            label="Select Date"
+                            value={selectedDate}
+                            onChange={handleDateChange}
+                            renderInput={(params) => <TextField {...params} />}
+                            sx={{ width: '250px' }}
+                        />
+                    </LocalizationProvider>
                 </Box>
 
                 {error && (
@@ -417,7 +454,7 @@ const ViewReport = () => {
 
                     .filter-section {
                         display: flex;
-                        justify-content: center;
+                        justifyContent: 'center';
                         margin-bottom: 2rem;
                     }
 
