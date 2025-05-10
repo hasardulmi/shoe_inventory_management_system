@@ -8,7 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.util.List;
 
-
 @RestController
 @RequestMapping("/api/suppliers")
 public class SupplierController {
@@ -26,6 +25,16 @@ public class SupplierController {
         try {
             Supplier savedSupplier = supplierService.addSupplier(supplier);
             return ResponseEntity.ok(savedSupplier);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateSupplier(@PathVariable Long id, @Valid @RequestBody Supplier supplier) {
+        try {
+            Supplier updatedSupplier = supplierService.updateSupplier(id, supplier);
+            return ResponseEntity.ok(updatedSupplier);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"error\":\"" + e.getMessage() + "\"}");
         }

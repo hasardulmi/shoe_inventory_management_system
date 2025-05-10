@@ -16,133 +16,128 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    useTheme, // Import useTheme hook
+    CircularProgress,
+    Snackbar,
+    Alert,
+    useTheme,
 } from '@mui/material';
 import OwnerNavbar from '../components/OwnerNavbar';
 import './styles.css';
 
 const SupplierManagement = () => {
-    const theme = useTheme(); // Access the Material-UI theme
-    const [suppliers, setSuppliers] = useState([]); // State to store supplier data
-    const [openDialog, setOpenDialog] = useState(false); // State to control dialog visibility
+    const theme = useTheme();
+    const [suppliers, setSuppliers] = useState([]);
+    const [openDialog, setOpenDialog] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [currentSupplier, setCurrentSupplier] = useState({
         id: null,
-        supplierFirstName: '',
-        supplierLastName: '',
-        supplierEmail: '',
-        supplierPhoneNum: '',
-        supplierAddress: '',
-        supplierBrandName: '',
+        companyName: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phoneNumber: '',
+        address: '',
     });
-    const [isEditMode, setIsEditMode] = useState(false); // State to track if we're editing or adding
-    const [errors, setErrors] = useState({}); // State to store validation errors
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [errors, setErrors] = useState({});
+    const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
-    // Fetch supplier data when the component mounts
     useEffect(() => {
         fetchSuppliers();
     }, []);
 
-    // Function to fetch supplier data from the backend
     const fetchSuppliers = async () => {
+        setLoading(true);
         try {
-            const response = await axios.get('http://localhost:8080/api/supplier');
-            setSuppliers(response.data); // Update state with fetched data
+            const response = await axios.get('http://localhost:8080/api/suppliers');
+            setSuppliers(response.data);
         } catch (error) {
             console.error('Error fetching suppliers:', error);
+            setErrorMessage('Failed to fetch suppliers: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Handle input change for form fields
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setCurrentSupplier({ ...currentSupplier, [name]: value });
-        setErrors({ ...errors, [name]: '' }); // Clear validation error
+        setErrors({ ...errors, [name]: '' });
     };
 
-    // Validate form fields
     const validateForm = () => {
         const newErrors = {};
-        if (!currentSupplier.supplierFirstName.trim()) {
-            newErrors.supplierFirstName = 'Supplier First Name is required';
-        }
-        if (!currentSupplier.supplierLastName.trim()) {
-            newErrors.supplierLastName = 'Supplier Last Name is required';
-        }
-        if (!currentSupplier.supplierEmail.trim()) {
-            newErrors.supplierEmail = 'Supplier Email is required';
-        }
-        if (!currentSupplier.supplierPhoneNum.trim()) {
-            newErrors.supplierPhoneNum = 'Supplier Phone Number is required';
-        }
-        if (!currentSupplier.supplierAddress.trim()) {
-            newErrors.supplierAddress = 'Supplier Address is required';
-        }
-        if (!currentSupplier.supplierBrandName.trim()) {
-            newErrors.supplierBrandName = 'Supplier Brand Name is required';
-        }
-        setErrors(newErrors); // Update the errors state
-        return Object.keys(newErrors).length === 0; // Return true if no errors
+        if (!currentSupplier.companyName.trim()) newErrors.companyName = 'Company Name is required';
+        if (!currentSupplier.firstName.trim()) newErrors.firstName = 'First Name is required';
+        if (!currentSupplier.lastName.trim()) newErrors.lastName = 'Last Name is required';
+        if (!currentSupplier.email.trim()) newErrors.email = 'Email is required';
+        else if (!/\S+@\S+\.\S+/.test(currentSupplier.email)) newErrors.email = 'Email is invalid';
+        if (!currentSupplier.phoneNumber.trim()) newErrors.phoneNumber = 'Phone Number is required';
+        if (!currentSupplier.address.trim()) newErrors.address = 'Address is required';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
     };
 
-    // Open dialog for adding or editing supplier
-    const handleOpenDialog = (supplierItem = null) => {
-        if (supplierItem) {
-            // If editing, populate the form with the current supplier item
-            setCurrentSupplier(supplierItem);
+    const handleOpenDialog = (supplier = null) => {
+        if (supplier) {
+            setCurrentSupplier(supplier);
             setIsEditMode(true);
         } else {
-            // If adding, reset the form
             setCurrentSupplier({
                 id: null,
-                supplierFirstName: '',
-                supplierLastName: '',
-                supplierEmail: '',
-                supplierPhoneNum: '',
-                supplierAddress: '',
-                supplierBrandName: '',
+                companyName: '',
+                firstName: '',
+                lastName: '',
+                email: '',
+                phoneNumber: '',
+                address: '',
             });
             setIsEditMode(false);
         }
-        setOpenDialog(true); // Open the dialog
+        setOpenDialog(true);
     };
 
-    // Close dialog
     const handleCloseDialog = () => {
         setOpenDialog(false);
+        setErrors({});
     };
 
-    // Save or update supplier
     const handleSaveSupplier = async () => {
-        if (!validateForm()) {
-            console.log('Validation failed');
-            return; // Validate form before saving
-        }
+        if (!validateForm()) return;
 
+        setLoading(true);
         try {
-            let response;
             if (isEditMode) {
-                // Update existing supplier item
-                response = await axios.put(`http://localhost:8080/api/supplier/${currentSupplier.id}`, currentSupplier);
-                console.log('Supplier updated:', response.data);
+                await axios.put(`http://localhost:8080/api/suppliers/${currentSupplier.id}`, currentSupplier);
+                setSuccessMessage('Supplier updated successfully!');
             } else {
-                // Add new supplier item
-                response = await axios.post('http://localhost:8080/api/supplier', currentSupplier);
-                console.log('Supplier added:', response.data);
+                await axios.post('http://localhost:8080/api/suppliers', currentSupplier);
+                setSuccessMessage('Supplier added successfully!');
             }
-            fetchSuppliers(); // Refresh the supplier list
-            handleCloseDialog(); // Close the dialog
+            fetchSuppliers();
+            handleCloseDialog();
         } catch (error) {
             console.error('Error saving supplier:', error);
+            setErrorMessage(error.response?.data?.error || 'Failed to save supplier');
+        } finally {
+            setLoading(false);
         }
     };
 
-    // Delete supplier
     const handleDeleteSupplier = async (id) => {
+        setLoading(true);
         try {
-            await axios.delete(`http://localhost:8080/api/supplier/${id}`);
-            fetchSuppliers(); // Refresh the supplier list
+            await axios.delete(`http://localhost:8080/api/suppliers/${id}`);
+            setSuccessMessage('Supplier deleted successfully!');
+            setDeleteConfirm(null);
+            fetchSuppliers();
         } catch (error) {
             console.error('Error deleting supplier:', error);
+            setErrorMessage('Failed to delete supplier: ' + (error.response?.data?.error || error.message));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -154,154 +149,186 @@ const SupplierManagement = () => {
                     Supplier Management
                 </Typography>
 
-                {/* Add Supplier Button */}
                 <Button
                     variant="contained"
                     color="primary"
                     onClick={() => handleOpenDialog()}
                     sx={{ mb: 3 }}
+                    disabled={loading}
                 >
                     Add New Supplier
                 </Button>
 
-                {/* Supplier Table */}
+                {loading && !openDialog && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                        <CircularProgress />
+                    </Box>
+                )}
+
                 <TableContainer component={Paper}>
                     <Table>
                         <TableHead>
                             <TableRow>
+                                <TableCell>Company Name</TableCell>
                                 <TableCell>First Name</TableCell>
                                 <TableCell>Last Name</TableCell>
                                 <TableCell>Email</TableCell>
                                 <TableCell>Phone Number</TableCell>
                                 <TableCell>Address</TableCell>
-                                <TableCell>Brand Name</TableCell>
-                                <TableCell>Actions</TableCell>
+                                <TableCell>Action</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {suppliers.map((supplier) => (
-                                <TableRow key={supplier.id}>
-                                    <TableCell>{supplier.supplierFirstName}</TableCell>
-                                    <TableCell>{supplier.supplierLastName}</TableCell>
-                                    <TableCell>{supplier.supplierEmail}</TableCell>
-                                    <TableCell>{supplier.supplierPhoneNum}</TableCell>
-                                    <TableCell>{supplier.supplierAddress}</TableCell>
-                                    <TableCell>{supplier.supplierBrandName}</TableCell>
-                                    <TableCell>
-                                        {/* Edit Button */}
-                                        <Button
-                                            variant="contained"
-                                            sx={{
-                                                backgroundColor: theme.palette.info.light, // Light blue
-                                                color: theme.palette.common.black, // Black text
-                                                '&:hover': {
-                                                    backgroundColor: theme.palette.info.main, // Slightly darker blue on hover
-                                                },
-                                                mr: 1, // Margin right
-                                            }}
-                                            onClick={() => handleOpenDialog(supplier)}
-                                        >
-                                            Edit
-                                        </Button>
-                                        {/* Delete Button */}
-                                        <Button
-                                            variant="contained"
-                                            sx={{
-                                                backgroundColor: theme.palette.success.light, // Light green
-                                                color: theme.palette.common.black, // Black text
-                                                '&:hover': {
-                                                    backgroundColor: theme.palette.success.main, // Slightly darker green on hover
-                                                },
-                                            }}
-                                            onClick={() => handleDeleteSupplier(supplier.id)}
-                                        >
-                                            Delete
-                                        </Button>
+                            {suppliers.length === 0 && !loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} align="center">
+                                        No suppliers found
                                     </TableCell>
                                 </TableRow>
-                            ))}
+                            ) : (
+                                suppliers.map((supplier) => (
+                                    <TableRow key={supplier.id}>
+                                        <TableCell>{supplier.companyName}</TableCell>
+                                        <TableCell>{supplier.firstName}</TableCell>
+                                        <TableCell>{supplier.lastName}</TableCell>
+                                        <TableCell>{supplier.email}</TableCell>
+                                        <TableCell>{supplier.phoneNumber}</TableCell>
+                                        <TableCell>{supplier.address}</TableCell>
+                                        <TableCell>
+                                            <Button
+                                                variant="contained"
+                                                sx={{
+                                                    backgroundColor: theme.palette.info.light,
+                                                    color: theme.palette.common.black,
+                                                    '&:hover': { backgroundColor: theme.palette.info.main },
+                                                    mr: 1,
+                                                }}
+                                                onClick={() => handleOpenDialog(supplier)}
+                                                disabled={loading}
+                                            >
+                                                Edit
+                                            </Button>
+                                            <Button
+                                                variant="contained"
+                                                sx={{
+                                                    backgroundColor: theme.palette.error.light,
+                                                    color: theme.palette.common.black,
+                                                    '&:hover': { backgroundColor: theme.palette.error.main },
+                                                }}
+                                                onClick={() => setDeleteConfirm(supplier.id)}
+                                                disabled={loading}
+                                            >
+                                                Delete
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
 
-                {/* Add/Edit Supplier Dialog */}
                 <Dialog open={openDialog} onClose={handleCloseDialog}>
                     <DialogTitle>{isEditMode ? 'Edit Supplier' : 'Add New Supplier'}</DialogTitle>
                     <DialogContent>
                         <TextField
                             fullWidth
                             margin="normal"
-                            label="First Name"
-                            name="supplierFirstName"
-                            value={currentSupplier.supplierFirstName}
+                            label="Company Name"
+                            name="companyName"
+                            value={currentSupplier.companyName}
                             onChange={handleInputChange}
-                            error={!!errors.supplierFirstName}
-                            helperText={errors.supplierFirstName}
+                            error={!!errors.companyName}
+                            helperText={errors.companyName}
+                            required
+                        />
+                        <TextField
+                            fullWidth
+                            margin="normal"
+                            label="First Name"
+                            name="firstName"
+                            value={currentSupplier.firstName}
+                            onChange={handleInputChange}
+                            error={!!errors.firstName}
+                            helperText={errors.firstName}
                             required
                         />
                         <TextField
                             fullWidth
                             margin="normal"
                             label="Last Name"
-                            name="supplierLastName"
-                            value={currentSupplier.supplierLastName}
+                            name="lastName"
+                            value={currentSupplier.lastName}
                             onChange={handleInputChange}
-                            error={!!errors.supplierLastName}
-                            helperText={errors.supplierLastName}
+                            error={!!errors.lastName}
+                            helperText={errors.lastName}
                             required
                         />
                         <TextField
                             fullWidth
                             margin="normal"
                             label="Email"
-                            name="supplierEmail"
-                            value={currentSupplier.supplierEmail}
+                            name="email"
+                            value={currentSupplier.email}
                             onChange={handleInputChange}
-                            error={!!errors.supplierEmail}
-                            helperText={errors.supplierEmail}
+                            error={!!errors.email}
+                            helperText={errors.email}
                             required
                         />
                         <TextField
                             fullWidth
                             margin="normal"
                             label="Phone Number"
-                            name="supplierPhoneNum"
-                            value={currentSupplier.supplierPhoneNum}
+                            name="phoneNumber"
+                            value={currentSupplier.phoneNumber}
                             onChange={handleInputChange}
-                            error={!!errors.supplierPhoneNum}
-                            helperText={errors.supplierPhoneNum}
+                            error={!!errors.phoneNumber}
+                            helperText={errors.phoneNumber}
                             required
                         />
                         <TextField
                             fullWidth
                             margin="normal"
                             label="Address"
-                            name="supplierAddress"
-                            value={currentSupplier.supplierAddress}
+                            name="address"
+                            value={currentSupplier.address}
                             onChange={handleInputChange}
-                            error={!!errors.supplierAddress}
-                            helperText={errors.supplierAddress}
-                            required
-                        />
-                        <TextField
-                            fullWidth
-                            margin="normal"
-                            label="Brand Name"
-                            name="supplierBrandName"
-                            value={currentSupplier.supplierBrandName}
-                            onChange={handleInputChange}
-                            error={!!errors.supplierBrandName}
-                            helperText={errors.supplierBrandName}
+                            error={!!errors.address}
+                            helperText={errors.address}
                             required
                         />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={handleCloseDialog}>Cancel</Button>
-                        <Button onClick={handleSaveSupplier} color="primary">
+                        <Button onClick={handleCloseDialog} disabled={loading}>Cancel</Button>
+                        <Button onClick={handleSaveSupplier} color="primary" disabled={loading}>
                             {isEditMode ? 'Update' : 'Save'}
                         </Button>
                     </DialogActions>
                 </Dialog>
+
+                <Dialog open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)}>
+                    <DialogTitle>Confirm Delete</DialogTitle>
+                    <DialogContent>
+                        <Typography>Are you sure you want to delete this supplier?</Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setDeleteConfirm(null)} disabled={loading}>Cancel</Button>
+                        <Button onClick={() => handleDeleteSupplier(deleteConfirm)} color="error" disabled={loading}>
+                            Delete
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                <Snackbar open={!!errorMessage} autoHideDuration={6000} onClose={() => setErrorMessage('')}>
+                    <Alert onClose={() => setErrorMessage('')} severity="error" sx={{ width: '100%' }}>
+                        {errorMessage}
+                    </Alert>
+                </Snackbar>
+                <Snackbar open={!!successMessage} autoHideDuration={6000} onClose={() => setSuccessMessage('')}>
+                    <Alert onClose={() => setSuccessMessage('')} severity="success" sx={{ width: '100%' }}>
+                        {successMessage}
+                    </Alert>
+                </Snackbar>
             </Box>
         </>
     );

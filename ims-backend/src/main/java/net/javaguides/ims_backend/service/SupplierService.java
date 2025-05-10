@@ -26,6 +26,23 @@ public class SupplierService {
     }
 
     @Transactional
+    public Supplier updateSupplier(Long id, Supplier updatedSupplier) {
+        Supplier existingSupplier = supplierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Supplier not found"));
+
+        // Update fields
+        existingSupplier.setCompanyName(updatedSupplier.getCompanyName());
+        existingSupplier.setFirstName(updatedSupplier.getFirstName());
+        existingSupplier.setLastName(updatedSupplier.getLastName());
+        existingSupplier.setEmail(updatedSupplier.getEmail());
+        existingSupplier.setPhoneNumber(updatedSupplier.getPhoneNumber());
+        existingSupplier.setAddress(updatedSupplier.getAddress());
+        existingSupplier.setBrandName(updatedSupplier.getBrandName());
+
+        return supplierRepository.save(existingSupplier);
+    }
+
+    @Transactional
     public void deleteSupplier(Long id) {
         if (!supplierRepository.existsById(id)) {
             throw new RuntimeException("Supplier not found");

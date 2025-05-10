@@ -1,40 +1,28 @@
 package net.javaguides.ims_backend.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 
 @Entity
-@Table(name = "suppliers", uniqueConstraints = @UniqueConstraint(columnNames = "company_name"))
+@Table(name = "suppliers")
 public class Supplier {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Company name is required")
-    @Column(name = "company_name", nullable = false)
     private String companyName;
+    private String firstName;
+    private String lastName;
+    private String email;
+    private String phoneNumber;
+    private String address;
+    private String brandName;
 
-    @Column(name = "contact_name")
-    private String contactName;
-
-    @Email(message = "Invalid email format")
-    @Column(name = "contact_email")
-    private String contactEmail;
-
-    @Column(name = "contact_phone")
-    private String contactPhone;
-
-    public Supplier() {}
-
-    public Supplier(String companyName, String contactName, String contactEmail, String contactPhone) {
-        this.companyName = companyName;
-        this.contactName = contactName;
-        this.contactEmail = contactEmail;
-        this.contactPhone = contactPhone;
+    // Default constructor
+    public Supplier() {
     }
 
+    // Getters and Setters
     public Long getId() {
         return id;
     }
@@ -51,27 +39,51 @@ public class Supplier {
         this.companyName = companyName;
     }
 
-    public String getContactName() {
-        return contactName;
+    public String getFirstName() {
+        return firstName;
     }
 
-    public void setContactName(String contactName) {
-        this.contactName = contactName;
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
     }
 
-    public String getContactEmail() {
-        return contactEmail;
+    public String getLastName() {
+        return lastName;
     }
 
-    public void setContactEmail(String contactEmail) {
-        this.contactEmail = contactEmail;
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
-    public String getContactPhone() {
-        return contactPhone;
+    public String getEmail() {
+        return email;
     }
 
-    public void setContactPhone(String contactPhone) {
-        this.contactPhone = contactPhone;
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public String getBrandName() {
+        return brandName;
+    }
+
+    public void setBrandName(String brandName) {
+        this.brandName = brandName;
     }
 }
