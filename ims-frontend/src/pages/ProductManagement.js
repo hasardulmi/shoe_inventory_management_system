@@ -11,6 +11,7 @@ import OwnerNavbar from '../components/OwnerNavbar';
 const ProductManagement = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
+    const [filterProductId, setFilterProductId] = useState(''); // New state for Product ID filter
     const [formData, setFormData] = useState({
         productName: '',
         categoryId: '',
@@ -346,6 +347,13 @@ const ProductManagement = () => {
     const selectedCategory = categories.find(c => c.id === parseInt(formData.categoryId));
     const allowedSubcats = selectedCategory ? selectedCategory.allowedSubcategories || [] : [];
 
+    // Filter products by Product ID
+    const filteredProducts = filterProductId
+        ? products.filter(product =>
+            product.productId?.toString().includes(filterProductId)
+        )
+        : products;
+
     return (
         <>
             <OwnerNavbar />
@@ -395,22 +403,35 @@ const ProductManagement = () => {
                         </Card>
                     </Grid>
                     <Grid item xs={12}>
-                        <Button
-                            variant="contained"
-                            startIcon={<Add />}
-                            onClick={() => {
-                                resetFormData();
-                                setEditId(null);
-                                setOpenDialog(true);
-                            }}
-                            sx={{ mb: 4, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
-                        >
-                            Add Product
-                        </Button>
+                        <Box sx={{ display: 'flex', gap: 2, mb: 4, alignItems: 'center' }}>
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
+                                onClick={() => {
+                                    resetFormData();
+                                    setEditId(null);
+                                    setOpenDialog(true);
+                                }}
+                                sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                            >
+                                Add Product
+                            </Button>
+                            <TextField
+                                label="Filter by Product ID"
+                                value={filterProductId}
+                                onChange={(e) => setFilterProductId(e.target.value)}
+                                sx={{ width: '250px' }}
+                                variant="outlined"
+                            />
+                        </Box>
                     </Grid>
                 </Grid>
 
-                <Dialog open={openDialog} onClose={() => { setOpenDialog(false); resetFormData(); setEditId(null); }} maxWidth="md" fullWidth>
+                <Dialog open={openDialog} onClose={() => {
+                    setOpenDialog(false);
+                    resetFormData();
+                    setEditId(null);
+                }} maxWidth="md" fullWidth>
                     <DialogTitle sx={{ bgcolor: '#10b981', color: 'white', py: 2 }}>
                         {editId ? 'Edit Product' : 'Add Product'}
                     </DialogTitle>
@@ -619,7 +640,11 @@ const ProductManagement = () => {
                         </Box>
                     </DialogContent>
                     <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => { setOpenDialog(false); resetFormData(); setEditId(null); }} variant="outlined">Cancel</Button>
+                        <Button onClick={() => {
+                            setOpenDialog(false);
+                            resetFormData();
+                            setEditId(null);
+                        }} variant="outlined">Cancel</Button>
                         <Button
                             type="submit"
                             variant="contained"
@@ -642,7 +667,10 @@ const ProductManagement = () => {
                                         label="Category Name"
                                         name="categoryName"
                                         value={newCategory.categoryName}
-                                        onChange={(e) => setNewCategory(prev => ({ ...prev, categoryName: e.target.value }))}
+                                        onChange={(e) => setNewCategory(prev => ({
+                                            ...prev,
+                                            categoryName: e.target.value
+                                        }))}
                                         fullWidth
                                         required
                                         variant="outlined"
@@ -699,7 +727,10 @@ const ProductManagement = () => {
                                         <Select
                                             name="categoryId"
                                             value={addSubcategoryData.categoryId}
-                                            onChange={(e) => setAddSubcategoryData(prev => ({ ...prev, categoryId: e.target.value }))}
+                                            onChange={(e) => setAddSubcategoryData(prev => ({
+                                                ...prev,
+                                                categoryId: e.target.value
+                                            }))}
                                             required
                                         >
                                             <MenuItem value="">Select Category</MenuItem>
@@ -767,25 +798,40 @@ const ProductManagement = () => {
                     </DialogActions>
                 </Dialog>
 
-                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-                    <Table>
+                <TableContainer
+                    component={Paper}
+                    sx={{
+                        mt: 4,
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                        borderRadius: '12px',
+                        maxHeight: '600px',
+                        overflowY: 'auto',
+                        '& .MuiTableHead-root': {
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                            backgroundColor: '#3b82f6',
+                        },
+                    }}
+                >
+                    <Table stickyHeader>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#3b82f6' }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Image</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Category</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Brand</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Subcategories</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Sizes & Quantities</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}> Unit Purchase Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Unit Selling Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Purchase Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold' }}>Actions</TableCell>
+                            <TableRow>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Product ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Image</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Name</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Category</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Brand</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Subcategories</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Sizes & Quantities</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Unit Purchase Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Unit Selling Price</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Purchase Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {products.map(product => {
+                            {filteredProducts.slice(0, 25).map(product => {
                                 const categoryName = categories.find(c => c.id === product.categoryId)?.categoryName || '';
                                 return (
                                     <TableRow key={product.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
@@ -816,7 +862,7 @@ const ProductManagement = () => {
                                         <TableCell>
                                             {product.subcategories && Object.keys(product.subcategories).length > 0 ? (
                                                 Object.entries(product.subcategories)
-                                                    .filter(([_, value]) => value && value.trim() !== '') // Filter out empty or undefined values
+                                                    .filter(([_, value]) => value && value.trim() !== '')
                                                     .map(([key, value]) => (
                                                         <div key={key}>{`${key}: ${value}`}</div>
                                                     ))
@@ -842,10 +888,177 @@ const ProductManagement = () => {
                                     </TableRow>
                                 );
                             })}
+                            {filteredProducts.length > 25 && (
+                                <TableRow>
+                                    <TableCell colSpan={11} align="center">
+                                        <Typography variant="caption" color="textSecondary">
+                                            Scroll to view more products...
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {filteredProducts.length === 0 && (
+                                <TableRow>
+                                    <TableCell colSpan={11} align="center">
+                                        <Typography variant="body2" color="textSecondary">
+                                            No products available for the selected filter.
+                                        </Typography>
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
             </Box>
+            <style>
+                {`
+                    .page-container {
+                        min-height: 100vh;
+                        background-color: #f5f7fa;
+                        font-family: 'Roboto', sans-serif;
+                    }
+
+                    .report-header {
+                        text-align: center;
+                        margin-bottom: 2rem;
+                        padding: 1.5rem;
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                    }
+
+                    .report-title {
+                        color: #1a3c34;
+                        font-weight: 600;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .report-date {
+                        color: #666;
+                        font-style: italic;
+                    }
+
+                    .filter-section {
+                        display: flex;
+                        justify-content: center;
+                        margin-bottom: 2rem;
+                    }
+
+                    .filter-input {
+                        background-color: #fff;
+                        border-radius: 4px;
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                    }
+
+                    .filter-input .MuiInputLabel-root {
+                        color: #333;
+                        font-weight: 500;
+                    }
+
+                    .error-message {
+                        text-align: center;
+                        margin-bottom: 1rem;
+                        font-weight: 500;
+                    }
+
+                    .report-tabs {
+                        background-color: #ffffff;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                        margin-bottom: 2rem;
+                    }
+
+                    .tab-item {
+                        text-transform: none;
+                        font-weight: 500;
+                        color: #666;
+                        padding: 12px 24px;
+                    }
+
+                    .tab-item.Mui-selected {
+                        color: #1976d2;
+                        font-weight: 600;
+                    }
+
+                    .table-wrapper {
+                        max-width: 1200px;
+                        margin: 0 auto;
+                    }
+
+                    .table-container {
+                        border-radius: 8px;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+                        margin-bottom: 2rem;
+                    }
+
+                    .table-row-even {
+                        background-color: #ffffff;
+                    }
+
+                    .table-row-odd {
+                        background-color: #f9fafb;
+                    }
+
+                    .MuiTableCell-root {
+                        padding: 12px 16px;
+                        border-bottom: 1px solid #e0e0e0;
+                        color: #333;
+                    }
+
+                    .section-title {
+                        color: #1a3c34;
+                        font-weight: 500;
+                        margin-bottom: 1rem;
+                        border-left: 4px solid #1976d2;
+                        padding-left: 1rem;
+                    }
+
+                    .no-data {
+                        color: #666;
+                        font-style: italic;
+                        padding: 2rem;
+                    }
+
+                    .MuiTableHead-root {
+                        position: sticky;
+                        top: 0;
+                        z-index: 1;
+                        background-color: #3b82f6;
+                    }
+
+                    .MuiTableCell-head {
+                        color: white;
+                        font-weight: bold;
+                        border-bottom: 2px solid #1565c0;
+                        background-color: #3b82f6;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .filter-section, .report-tabs, .MuiTabs-root {
+                            display: none;
+                        }
+                        .table-container {
+                            box-shadow: none;
+                            max-height: none;
+                            overflow-y: visible;
+                        }
+                        .table {
+                            page-break-inside: auto;
+                        }
+                        .table tr {
+                            page-break-inside: avoid;
+                            page-break-after: auto;
+                        }
+                        .summary {
+                            page-break-inside: avoid;
+                        }
+                    }
+                `}
+            </style>
         </>
     );
 };
