@@ -1,309 +1,264 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import {
-    Typography, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField, Button, Grid, Alert
+    Box, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    CircularProgress, Typography, Snackbar, Alert, FormControl, InputLabel, Select, MenuItem
 } from '@mui/material';
+import { Add } from '@mui/icons-material';
+import axios from 'axios';
 import OwnerNavbar from '../components/EmployeeNavbar';
-import './styles.css';
+import ReturnDialog from './ReturnDialog';
 
-// Utility function to format date to dd/mm/yyyy
-const formatDate = (date) => {
-    const d = new Date(date);
-    const day = String(d.getDate()).padStart(2, '0');
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const year = d.getFullYear();
-    return `${day}/${month}/${year}`;
-};
-
-// Utility function to get current date in yyyy-mm-dd
-const getCurrentDateISO = () => {
-    return new Date().toISOString().split('T')[0];
-};
-
-const EmployeeReturn = () => {
+const ReturnManagement = () => {
     const [returns, setReturns] = useState([]);
-    const [products, setProducts] = useState({});
-    const [searchTerm, setSearchTerm] = useState('');
-    const [newReturn, setNewReturn] = useState({
-        productId: '',
-        returnDate: getCurrentDateISO(),
-        returnedDate: null,
-        reason: '',
-        purchasePrice: null,
-        supplierName: '',
-        brandName: ''
-    });
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
-    const BASE_URL = 'http://localhost:8080';
+    const [success, setSuccess] = useState('');
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedProductId, setSelectedProductId] = useState('');
+    const [selectedSaleId, setSelectedSaleId] = useState('');
 
     useEffect(() => {
         fetchReturns();
-        fetchProducts();
     }, []);
 
     const fetchReturns = async () => {
+        setLoading(true);
         try {
-            const response = await axios.get(`${BASE_URL}/api/returns`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            setReturns(response.data);
-        } catch (error) {
-            console.error('Error fetching returns:', error.message);
-            setError('Failed to fetch returns');
-        }
-    };
-
-    const fetchProducts = async () => {
-        try {
-            const response = await axios.get(`${BASE_URL}/api/products`, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const productMap = {};
-            response.data.forEach(product => {
-                productMap[product.productId] = product;
-            });
-            setProducts(productMap);
-        } catch (error) {
-            console.error('Error fetching products:', error.message);
-            setError('Failed to fetch products');
-        }
-    };
-
-    const handleSearch = (e) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const handleInputChange = async (e) => {
-        const { name, value } = e.target;
-        setNewReturn(prev => ({ ...prev, [name]: value }));
-        setError('');
-
-        if (name === 'productId' && value) {
-            try {
-                const response = await axios.get(`${BASE_URL}/api/products/by-product-id/${value}`, {
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                const product = response.data;
-                if (product.status === 'RETURNED') {
-                    setError('Product is already returned');
-                    setNewReturn(prev => ({
-                        ...prev,
-                        purchasePrice: null,
-                        supplierName: '',
-                        brandName: ''
-                    }));
-                } else {
-                    setNewReturn(prev => ({
-                        ...prev,
-                        purchasePrice: product.purchasePrice,
-                        supplierName: product.supplierName || '',
-                        brandName: product.brandName || '',
-                        returnDate: getCurrentDateISO()
-                    }));
-                }
-            } catch (error) {
-                setError('Product not found');
-                setNewReturn(prev => ({
-                    ...prev,
-                    purchasePrice: null,
-                    supplierName: '',
-                    brandName: ''
+            const response = await axios.get('http://localhost:8080/api/returns');
+            console.log("Returns API Response (Full):", response.data);
+            const returnsData = response.data.data || [];
+            if (!Array.isArray(returnsData)) {
+                console.warn("Returns data is not an array, forcing empty array:", returnsData);
+                setReturns([]);
+            } else {
+                console.log("Fetched Returns with Details:", returnsData.map(r => ({
+                    id: r.id,
+                    productId: r.productId,
+                    productName: r.productName,
+                    saleId: r.saleId,
+                    returnDate: r.returnDate,
+                    reason: r.reason,
+                    sizeQuantities: r.sizeQuantities
+                })));
+                // Fallback to fetch productName from sale if missing
+                const updatedReturns = await Promise.all(returnsData.map(async (returnItem) => {
+                    if (!returnItem.productName || returnItem.productName === 'Product Not Found') {
+                        if (returnItem.saleId) {
+                            try {
+                                const saleResponse = await axios.get('http://localhost:8080/api/sales');
+                                const sales = Array.isArray(saleResponse.data) ? saleResponse.data : (saleResponse.data.data || []);
+                                const sale = sales.find(s => parseInt(s.id) === parseInt(returnItem.saleId));
+                                return { ...returnItem, productName: sale ? sale.productName || 'Sale Not Found' : 'Sale Not Found' };
+                            } catch (err) {
+                                console.error("Error fetching sale for productName:", err);
+                                return { ...returnItem, productName: 'Sale Not Found' };
+                            }
+                        }
+                    }
+                    return returnItem;
                 }));
+                setReturns(updatedReturns);
             }
+        } catch (err) {
+            console.error("Error fetching returns:", err.response ? err.response.data : err.message);
+            setError(err.response?.data?.error || 'Failed to fetch returns: ' + err.message);
+            setReturns([]);
+        } finally {
+            setLoading(false);
         }
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!newReturn.productId || !newReturn.returnDate || !newReturn.reason || !newReturn.purchasePrice) {
-            setError('Please fill all required fields');
-            return;
-        }
-        try {
-            const returnData = {
-                productId: newReturn.productId,
-                returnDate: newReturn.returnDate,
-                returnedDate: null,
-                reason: newReturn.reason
-            };
-            await axios.post(`${BASE_URL}/api/returns`, returnData, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            setNewReturn({
-                productId: '',
-                returnDate: getCurrentDateISO(),
-                returnedDate: null,
-                reason: '',
-                purchasePrice: null,
-                supplierName: '',
-                brandName: ''
-            });
-            setError('');
-            fetchReturns();
-            fetchProducts();
-        } catch (error) {
-            setError(error.response?.data || 'Failed to create return');
-        }
+    const handleSuccess = (message) => {
+        setSuccess(message);
+        fetchReturns();
     };
 
-    const handleMarkAsReturned = async (returnId, productId) => {
-        try {
-            await axios.put(`${BASE_URL}/api/returns/${returnId}/mark-returned`, {
-                returnedDate: getCurrentDateISO()
-            }, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            // Update product status to RETURNED
-            await axios.put(`${BASE_URL}/api/products/by-product-id/${productId}/return`, {}, {
-                headers: { 'Content-Type': 'application/json' }
-            });
-            setError('');
-            fetchReturns();
-            fetchProducts();
-        } catch (error) {
-            setError(error.response?.data || 'Failed to mark as returned');
-        }
+    // Handle Product ID filter change
+    const handleProductIdFilterChange = (e) => {
+        setSelectedProductId(e.target.value);
     };
+
+    // Handle Sale ID filter change
+    const handleSaleIdFilterChange = (e) => {
+        setSelectedSaleId(e.target.value);
+    };
+
+    // Get filtered returns based on Product ID and Sale ID
+    const getFilteredReturns = () => {
+        let filteredReturns = returns;
+
+        if (selectedProductId) {
+            filteredReturns = filteredReturns.filter(returnItem => String(returnItem.productId) === String(selectedProductId));
+        }
+
+        if (selectedSaleId) {
+            filteredReturns = filteredReturns.filter(returnItem => String(returnItem.saleId) === String(selectedSaleId));
+        }
+
+        return filteredReturns;
+    };
+
+    // Extract unique Product IDs and Sale IDs for dropdowns
+    const uniqueProductIds = [...new Set(returns.map(returnItem => returnItem.productId).filter(Boolean))];
+    const uniqueSaleIds = [...new Set(returns.map(returnItem => returnItem.saleId).filter(Boolean))];
 
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4 }} className="page-container">
-                <Typography variant="h4" component="h1" gutterBottom className="page-title">
+            <Box sx={{ p: 4, bgcolor: '#f3f4f6', minHeight: '100vh' }}>
+                <Typography variant="h4" sx={{ mb: 4, color: '#1f2937', fontWeight: 'bold', textAlign: 'center' }}>
                     Return Management
                 </Typography>
-
-                {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
+                <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
                         {error}
                     </Alert>
-                )}
+                </Snackbar>
+                <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                        {success}
+                    </Alert>
+                </Snackbar>
+                <Button
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={() => setOpenDialog(true)}
+                    sx={{ mb: 4, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                >
+                    Add Return
+                </Button>
 
-                <Box sx={{ mb: 4 }}>
-                    <Typography variant="h6" gutterBottom>
-                        Create New Return
-                    </Typography>
-                    <form onSubmit={handleSubmit}>
-                        <Grid container spacing={2}>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Product ID"
-                                    name="productId"
-                                    value={newReturn.productId}
-                                    onChange={handleInputChange}
-                                    fullWidth
-                                    required
-                                    placeholder="e.g., S00001"
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Purchase Price"
-                                    value={newReturn.purchasePrice ? newReturn.purchasePrice.toFixed(2) : ''}
-                                    fullWidth
-                                    disabled
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Supplier Name"
-                                    value={newReturn.supplierName}
-                                    fullWidth
-                                    disabled
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Brand Name"
-                                    value={newReturn.brandName}
-                                    fullWidth
-                                    disabled
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Return Date"
-                                    value={formatDate(newReturn.returnDate)}
-                                    fullWidth
-                                    disabled
-                                />
-                            </Grid>
-                            <Grid item xs={12} sm={3}>
-                                <TextField
-                                    label="Reason"
-                                    name="reason"
-                                    value={newReturn.reason}
-                                    onChange={handleInputChange}
-                                    fullWidth
-                                    required
-                                />
-                            </Grid>
-                            <Grid item xs={12}>
-                                <Button type="submit" variant="contained" color="primary">
-                                    Create Return
-                                </Button>
-                            </Grid>
-                        </Grid>
-                    </form>
+                {/* Product ID and Sale ID Filters */}
+                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                    <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
+                        <InputLabel>Product ID</InputLabel>
+                        <Select
+                            value={selectedProductId}
+                            onChange={handleProductIdFilterChange}
+                            label="Product ID"
+                        >
+                            <MenuItem value="">All Product IDs</MenuItem>
+                            {uniqueProductIds.map((productId, index) => (
+                                <MenuItem key={index} value={productId}>
+                                    {productId}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
+                    <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
+                        <InputLabel>Sale ID</InputLabel>
+                        <Select
+                            value={selectedSaleId}
+                            onChange={handleSaleIdFilterChange}
+                            label="Sale ID"
+                        >
+                            <MenuItem value="">All Sale IDs</MenuItem>
+                            {uniqueSaleIds.map((saleId, index) => (
+                                <MenuItem key={index} value={saleId}>
+                                    {saleId}
+                                </MenuItem>
+                            ))}
+                        </Select>
+                    </FormControl>
                 </Box>
 
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, gap: 2 }}>
-                    <TextField
-                        label="Search Returns"
-                        variant="outlined"
-                        value={searchTerm}
-                        onChange={handleSearch}
-                        sx={{ width: '300px' }}
-                        placeholder="Search by Product ID"
-                    />
-                </Box>
+                <ReturnDialog
+                    open={openDialog}
+                    onClose={() => setOpenDialog(false)}
+                    onSuccess={handleSuccess}
+                />
 
-                <TableContainer component={Paper} className="table-container">
-                    <Table>
+                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px', maxHeight: '600px', overflowY: 'auto', position: 'relative' }}>
+                    <Table stickyHeader>
                         <TableHead>
-                            <TableRow>
-                                <TableCell>Return Date</TableCell>
-                                <TableCell>Product ID</TableCell>
-                                <TableCell>Product Name</TableCell>
-                                <TableCell>Purchase Price</TableCell>
-                                <TableCell>Supplier Name</TableCell>
-                                <TableCell>Brand Name</TableCell>
-                                <TableCell>Reason</TableCell>
-                                <TableCell>Action</TableCell>
-                                <TableCell>Returned Date</TableCell>
+                            <TableRow sx={{ bgcolor: '#3b82f6', position: 'sticky', top: 0, zIndex: 1 }}>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product Name</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sale ID</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return Date</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Reason</TableCell>
+                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sizes & Quantities</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {returns
-                                .filter(item => !searchTerm || item.productId.toLowerCase().includes(searchTerm.toLowerCase()))
-                                .map((item) => (
-                                    <TableRow key={item.id}>
-                                        <TableCell>{formatDate(item.returnDate)}</TableCell>
-                                        <TableCell>{item.productId}</TableCell>
-                                        <TableCell>{products[item.productId]?.productName || '-'}</TableCell>
-                                        <TableCell>{products[item.productId]?.purchasePrice?.toFixed(2) || '-'}</TableCell>
-                                        <TableCell>{products[item.productId]?.supplierName || '-'}</TableCell>
-                                        <TableCell>{products[item.productId]?.brandName || '-'}</TableCell>
-                                        <TableCell>{item.reason}</TableCell>
+                            {loading ? (
+                                <TableRow>
+                                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 2 }}>
+                                        <CircularProgress />
+                                    </TableCell>
+                                </TableRow>
+                            ) : getFilteredReturns().length > 0 ? (
+                                [...getFilteredReturns()].reverse().map(returnItem => (
+                                    <TableRow key={returnItem.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
+                                        <TableCell>{returnItem.id || 'N/A'}</TableCell>
+                                        <TableCell>{returnItem.productId || 'N/A'}</TableCell>
+                                        <TableCell>{returnItem.productName || 'N/A'}</TableCell>
+                                        <TableCell>{returnItem.saleId || 'N/A'}</TableCell>
                                         <TableCell>
-                                            <Button
-                                                variant="contained"
-                                                color="secondary"
-                                                onClick={() => handleMarkAsReturned(item.id, item.productId)}
-                                                disabled={item.returnedDate !== null}
-                                            >
-                                                Mark as Returned
-                                            </Button>
+                                            {returnItem.returnDate ? new Date(returnItem.returnDate).toLocaleDateString('en-US', {
+                                                year: 'numeric',
+                                                month: '2-digit',
+                                                day: '2-digit',
+                                            }) : 'N/A'}
                                         </TableCell>
-                                        <TableCell>{item.returnedDate ? formatDate(item.returnedDate) : 'Not Return Yet'}</TableCell>
+                                        <TableCell>{returnItem.reason || 'N/A'}</TableCell>
+                                        <TableCell>
+                                            {returnItem.sizeQuantities
+                                                ? Object.entries(returnItem.sizeQuantities)
+                                                    .map(([size, qty]) => `Size ${size}: ${qty}`)
+                                                    .join(', ')
+                                                : 'N/A'}
+                                        </TableCell>
                                     </TableRow>
-                                ))}
+                                ))
+                            ) : (
+                                <TableRow>
+                                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 2 }}>
+                                        No return records available.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </TableContainer>
+
+                <style>
+                    {`
+                        .MuiTableHead-root {
+                            position: sticky;
+                            top: 0;
+                            z-index: 1;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableCell-head {
+                            color: white;
+                            font-weight: bold;
+                            border-bottom: 2px solid #1565c0;
+                            background-color: #3b82f6;
+                        }
+
+                        .MuiTableContainer-root {
+                            position: relative;
+                            max-height: 600px;
+                            overflow-y: auto;
+                        }
+
+                        .MuiTableRow-root:hover {
+                            background-color: #f9fafb;
+                        }
+
+                        .MuiTableCell-body {
+                            padding: 12px 16px;
+                            border-bottom: 1px solid #e0e0e0;
+                            color: #333;
+                        }
+                    `}
+                </style>
             </Box>
         </>
     );
 };
 
-export default EmployeeReturn;
+export default ReturnManagement;
