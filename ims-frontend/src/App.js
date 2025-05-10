@@ -10,7 +10,7 @@ import ProductManagement from "./pages/ProductManagement";
 import EmployeeProfile from './pages/EmployeeProfile';
 import OwnerProfile from './pages/OwnerProfile';
 import Sales from "./pages/SalesManagement";
-import EmployeeSalesReport from './pages/EmployeeSalesReport';
+import EmployeeSales from './pages/EmployeeSales';
 import Return from './pages/ReturnManagement';
 import EmployeeReturn from './pages/EmployeeReturn';
 import Reports from './pages/ViewReport';
@@ -33,7 +33,7 @@ function App() {
                 <Route path="/employeeProfile" element={<EmployeeProfile />} />
                 <Route path="/profile" element={<OwnerProfile />} />
                 <Route path="/sales" element={<Sales/>} />
-                <Route path="/employee-sales-report" element={<EmployeeSalesReport />} />
+                <Route path="/employee-sales-report" element={<EmployeeSales />} />
                 <Route path="/return" element={<Return />} />
                 <Route path="/employee-return" element={<EmployeeReturn />} />
                 <Route path="/report" element={<Reports />} />
