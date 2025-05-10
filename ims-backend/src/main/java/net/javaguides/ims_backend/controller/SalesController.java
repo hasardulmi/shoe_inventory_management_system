@@ -46,7 +46,7 @@ public class SalesController {
             response.put("categoryName", product.getCategory() != null ? product.getCategory().getCategoryName() : "N/A");
             response.put("subcategories", product.getSubcategories() != null ? product.getSubcategories() : new HashMap<>());
             response.put("hasSizes", product.getHasSizes() != null ? product.getHasSizes() : false);
-            response.put("sizeQuantities", product.getSizeQuantities() != null ? product.getSizeQuantities().stream().map(sq -> Map.of("size", sq.getSize(), "quantity", sq.getQuantity())).toList() : new java.util.ArrayList<>());
+            response.put("sizeQuantities", product.getSizeQuantities() != null ? product.getSizeQuantities().stream().map(sq -> Map.of("size", sq.getSize(), "quantity", sq.getQuantity())).toList() : new ArrayList<>());
             response.put("sellingPrice", product.getSellingPrice() != null ? product.getSellingPrice() : 0.0);
 
             logger.info("Product details for productId {}: {}", productId, response);
@@ -64,10 +64,8 @@ public class SalesController {
     public ResponseEntity<Map<String, Object>> getAllSales() {
         Map<String, Object> response = new HashMap<>();
         try {
-            List<Sale> sales = entityManager.createQuery(
-                            "SELECT s FROM Sale s JOIN FETCH s.sizeQuantities", Sale.class)
-                    .getResultList();
-            logger.info("Fetched {} sales from the database: {}", sales.size(), sales);
+            List<Sale> sales = salesService.getAllSales();
+            logger.info("Raw sales from repository: {}", sales);
             List<SaleDTO> saleDTOs = sales.stream().map(sale -> {
                 SaleDTO dto = new SaleDTO();
                 dto.setId(sale.getId());
@@ -88,7 +86,7 @@ public class SalesController {
                     dto.setSellingPrice(0.0);
                 }
                 LocalDate saleDate = sale.getSaleDate();
-                dto.setSaleDate(saleDate); // Set LocalDate directly
+                dto.setSaleDate(saleDate);
                 dto.setQuantity(sale.getQuantity());
                 dto.setSizeQuantities(sale.getSizeQuantities());
                 dto.setDiscount(sale.getDiscount());
@@ -96,7 +94,7 @@ public class SalesController {
                 logger.debug("Mapped SaleDTO: {}", dto);
                 return dto;
             }).collect(Collectors.toList());
-            logger.info("Successfully mapped {} sales to DTOs: {}", saleDTOs.size(), saleDTOs);
+            logger.info("Mapped SaleDTOs: {}", saleDTOs);
             response.put("data", saleDTOs);
             response.put("success", true);
             return ResponseEntity.ok(response);
@@ -116,7 +114,6 @@ public class SalesController {
             if (productId == null || productId.trim().isEmpty()) {
                 throw new IllegalArgumentException("Product ID is null or empty");
             }
-            // Set current date if not provided
             if (saleDTO.getSaleDate() == null) {
                 saleDTO.setSaleDate(LocalDate.now());
             }
@@ -167,10 +164,10 @@ public class SalesController {
                 saleDTO.getSizeQuantities().entrySet().stream()
                         .map(entry -> "Size " + entry.getKey() + ": " + entry.getValue())
                         .collect(Collectors.joining(", ")) :
-                saleDTO.getQuantity().toString());
+                saleDTO.getQuantity() != null ? saleDTO.getQuantity().toString() : "0");
         invoice.put("sellingPrice", product.getSellingPrice() != null ? product.getSellingPrice().toString() : "0.0");
         invoice.put("discount", saleDTO.getDiscount() != null ? saleDTO.getDiscount().toString() : "0.0");
-        invoice.put("totalSellingPrice", saleDTO.getTotalSellingPrice().toString());
+        invoice.put("totalSellingPrice", saleDTO.getTotalSellingPrice() != null ? saleDTO.getTotalSellingPrice().toString() : "0.0");
         return invoice;
     }
 }

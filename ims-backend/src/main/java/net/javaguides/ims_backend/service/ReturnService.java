@@ -71,36 +71,62 @@ public class ReturnService {
 
             Sale sale = null;
             if (returnDTO.getSaleId() != null) {
-                sale = salesRepository.findById(returnDTO.getSaleId())
+                Sale fetchedSale = salesRepository.findById(returnDTO.getSaleId())
                         .orElseThrow(() -> new IllegalArgumentException("Sale not found with ID: " + returnDTO.getSaleId()));
-                if (returnDTO.getProductId() != null && !returnDTO.getProductId().isEmpty() && !sale.getProductId().equals(returnDTO.getProductId())) {
+                if (returnDTO.getProductId() != null && !returnDTO.getProductId().isEmpty() && !fetchedSale.getProductId().equals(returnDTO.getProductId())) {
                     throw new IllegalArgumentException("Sale does not match the provided Product ID");
+                }
+                sale = fetchedSale;
+            }
+
+            // Normalize return quantities to handle "N/A" for sales without sizes
+            Map<String, Integer> normalizedReturnQuantities = new HashMap<>();
+            boolean saleHasSizes = sale != null && sale.getSizeQuantities() != null && !sale.getSizeQuantities().isEmpty();
+            for (Map.Entry<String, Integer> entry : returnDTO.getSizeQuantities().entrySet()) {
+                String size = entry.getKey();
+                Integer qty = entry.getValue();
+                if (!saleHasSizes) {
+                    // If sale has no sizes, aggregate all quantities under "N/A"
+                    size = "N/A";
+                    normalizedReturnQuantities.merge("N/A", qty, Integer::sum);
+                } else {
+                    normalizedReturnQuantities.put(size, qty);
                 }
             }
 
             // Validate return quantities against available quantities
-            Map<String, Integer> availableQuantities;
+            Map<String, Integer> availableQuantities = new HashMap<>();
             if (sale != null && ("ADD_PRODUCT_QUANTITY".equals(condition) || "DEDUCT_SALE_QUANTITY".equals(condition))) {
-                availableQuantities = sale.getSizeQuantities();
+                if (sale.getSizeQuantities() != null && !sale.getSizeQuantities().isEmpty()) {
+                    availableQuantities.putAll(sale.getSizeQuantities());
+                } else if (sale.getQuantity() != null && sale.getQuantity() >= 0) {
+                    availableQuantities.put("N/A", sale.getQuantity());
+                } else {
+                    logger.warn("Sale ID {} has no sizeQuantities and quantity is null or negative: {}", returnDTO.getSaleId(), sale.getQuantity());
+                    availableQuantities.put("N/A", 0);
+                }
+                logger.debug("Available quantities for sale ID {}: {}", returnDTO.getSaleId(), availableQuantities);
             } else if (product != null && "DEDUCT_PRODUCT_QUANTITY".equals(condition)) {
-                String productId = product.getProductId(); // Capture productId as a final variable
-                availableQuantities = product.getSizeQuantities().stream()
-                        .collect(Collectors.toMap(
-                                SizeQuantity::getSize,
-                                SizeQuantity::getQuantity,
-                                (q1, q2) -> {
-                                    logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", productId, q1, q2);
-                                    return q1;
-                                }));
+                if (product.getHasSizes() != null && product.getHasSizes() && product.getSizeQuantities() != null) {
+                    product.getSizeQuantities().forEach(sq -> {
+                        availableQuantities.put(sq.getSize(), sq.getQuantity());
+                    });
+                } else {
+                    availableQuantities.put("N/A", product.getQuantity() != null ? product.getQuantity() : 0);
+                }
+                logger.debug("Available quantities for product ID {}: {}", product.getProductId(), availableQuantities);
             } else {
                 throw new IllegalArgumentException("Cannot determine available quantities for the given condition");
             }
 
-            // Validate return quantities
-            for (Map.Entry<String, Integer> entry : returnDTO.getSizeQuantities().entrySet()) {
+            // Validate normalized return quantities
+            for (Map.Entry<String, Integer> entry : normalizedReturnQuantities.entrySet()) {
                 String size = entry.getKey();
                 Integer qty = entry.getValue();
                 Integer availableQty = availableQuantities.getOrDefault(size, 0);
+                if (qty == null || qty <= 0) {
+                    throw new IllegalArgumentException("Return quantity for size " + size + " must be a positive number");
+                }
                 if (qty > availableQty) {
                     throw new IllegalArgumentException("Return quantity (" + qty + ") for size " + size + " exceeds available quantity (" + availableQty + ")");
                 }
@@ -111,7 +137,7 @@ public class ReturnService {
             returnEntity.setSaleId(returnDTO.getSaleId());
             returnEntity.setReturnDate(returnDTO.getReturnDate());
             returnEntity.setReason(returnDTO.getReason());
-            returnEntity.setSizeQuantities(returnDTO.getSizeQuantities());
+            returnEntity.setSizeQuantities(normalizedReturnQuantities); // Use normalized quantities
 
             Return savedReturn = returnRepository.save(returnEntity);
             updateInventories(returnDTO, product, sale);
@@ -139,121 +165,207 @@ public class ReturnService {
         Map<String, Integer> returnQuantities = returnDTO.getSizeQuantities();
         String condition = returnDTO.getCondition();
 
+        // Normalize return quantities for consistency
+        Map<String, Integer> normalizedReturnQuantities = new HashMap<>();
+        boolean saleHasSizes = sale != null && sale.getSizeQuantities() != null && !sale.getSizeQuantities().isEmpty();
+        for (Map.Entry<String, Integer> entry : returnQuantities.entrySet()) {
+            String size = entry.getKey();
+            Integer qty = entry.getValue();
+            if (!saleHasSizes) {
+                size = "N/A";
+                normalizedReturnQuantities.merge("N/A", qty, Integer::sum);
+            } else {
+                normalizedReturnQuantities.put(size, qty);
+            }
+        }
+
         if ("ADD_PRODUCT_QUANTITY".equals(condition)) {
-            // Scenario 1: Add to product quantity, deduct from sale quantity
             if (product == null || sale == null) {
                 throw new IllegalStateException("Product and Sale must be provided for 'Add Product Quantity' condition");
             }
 
-            // Aggregate product quantities to handle duplicates
-            Map<String, Integer> aggregatedProductQuantities = product.getSizeQuantities().stream()
-                    .collect(Collectors.toMap(
-                            SizeQuantity::getSize,
-                            SizeQuantity::getQuantity,
-                            (q1, q2) -> {
-                                logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", product.getProductId(), q1, q2);
-                                return q1;
-                            }));
+            // Check if the product has sizes
+            boolean productHasSizes = product.getHasSizes() != null && product.getHasSizes();
+            if (productHasSizes) {
+                // Handle products with sizes
+                Map<String, Integer> aggregatedProductQuantities = product.getSizeQuantities().stream()
+                        .collect(Collectors.toMap(
+                                SizeQuantity::getSize,
+                                SizeQuantity::getQuantity,
+                                (q1, q2) -> {
+                                    logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", product.getProductId(), q1, q2);
+                                    return q1;
+                                }));
 
-            // Update product quantities by adding return quantities
-            for (Map.Entry<String, Integer> entry : returnQuantities.entrySet()) {
-                String size = entry.getKey();
-                int returnQty = entry.getValue();
-                int currentQty = aggregatedProductQuantities.getOrDefault(size, 0);
-                SizeQuantity existingSq = product.getSizeQuantities().stream()
-                        .filter(sq -> sq.getSize().equals(size))
-                        .findFirst()
-                        .orElse(null);
+                // Update product quantities by adding return quantities
+                for (Map.Entry<String, Integer> entry : normalizedReturnQuantities.entrySet()) {
+                    String size = entry.getKey();
+                    int returnQty = entry.getValue();
+                    int currentQty = aggregatedProductQuantities.getOrDefault(size, 0);
+                    SizeQuantity existingSq = product.getSizeQuantities().stream()
+                            .filter(sq -> sq.getSize().equals(size))
+                            .findFirst()
+                            .orElse(null);
 
-                if (existingSq != null) {
-                    existingSq.setQuantity(currentQty + returnQty);
-                } else {
-                    SizeQuantity newSq = new SizeQuantity();
-                    newSq.setProduct(product);
-                    newSq.setSize(size);
-                    newSq.setQuantity(returnQty);
-                    product.getSizeQuantities().add(newSq);
+                    if (existingSq != null) {
+                        existingSq.setQuantity(currentQty + returnQty);
+                    } else {
+                        SizeQuantity newSq = new SizeQuantity();
+                        newSq.setProduct(product);
+                        newSq.setSize(size);
+                        newSq.setQuantity(returnQty);
+                        product.getSizeQuantities().add(newSq);
+                    }
                 }
+            } else {
+                // Handle products without sizes
+                int totalReturnQty = normalizedReturnQuantities.getOrDefault("N/A", 0);
+                int currentQty = product.getQuantity() != null ? product.getQuantity() : 0;
+                product.setQuantity(currentQty + totalReturnQty);
             }
 
-            // Update sale size quantities (deduct returned quantities)
-            Map<String, Integer> saleSizeQuantities = sale.getSizeQuantities();
-            Map<String, Integer> updatedSaleQuantities = new HashMap<>(saleSizeQuantities);
-            for (Map.Entry<String, Integer> entry : returnQuantities.entrySet()) {
-                String size = entry.getKey();
-                int qty = entry.getValue();
-                int currentQty = saleSizeQuantities.getOrDefault(size, 0);
-                if (currentQty < qty) {
-                    throw new IllegalArgumentException("Insufficient quantity in sale for size: " + size);
+            // Re-fetch sale to ensure we have the latest quantity
+            Sale fetchedSale = salesRepository.findById(sale.getId())
+                    .orElseThrow(() -> new IllegalStateException("Sale not found with ID: " + sale.getId()));
+
+            // Update sale quantities (deduct returned quantities)
+            if (fetchedSale.getSizeQuantities() != null && !fetchedSale.getSizeQuantities().isEmpty()) {
+                Map<String, Integer> saleSizeQuantities = fetchedSale.getSizeQuantities();
+                Map<String, Integer> updatedSaleQuantities = new HashMap<>(saleSizeQuantities);
+                for (Map.Entry<String, Integer> entry : normalizedReturnQuantities.entrySet()) {
+                    String size = entry.getKey();
+                    int qty = entry.getValue();
+                    int currentQty = saleSizeQuantities.getOrDefault(size, 0);
+                    if (currentQty < qty) {
+                        throw new IllegalArgumentException("Insufficient quantity in sale for size: " + size);
+                    }
+                    updatedSaleQuantities.put(size, currentQty - qty);
                 }
-                updatedSaleQuantities.put(size, currentQty - qty);
+                fetchedSale.setSizeQuantities(updatedSaleQuantities);
+            } else if (fetchedSale.getQuantity() != null) {
+                int totalReturnQty = normalizedReturnQuantities.getOrDefault("N/A", 0);
+                int currentQty = fetchedSale.getQuantity();
+                logger.debug("Before deduction - Sale ID {} quantity: {}, return quantity: {}", fetchedSale.getId(), currentQty, totalReturnQty);
+                if (currentQty < totalReturnQty) {
+                    throw new IllegalArgumentException("Insufficient quantity in sale for size: N/A");
+                }
+                fetchedSale.setQuantity(currentQty - totalReturnQty);
+                logger.debug("After deduction - Sale ID {} quantity: {}", fetchedSale.getId(), fetchedSale.getQuantity());
             }
-            sale.setSizeQuantities(updatedSaleQuantities);
-            salesRepository.save(sale);
+            salesRepository.save(fetchedSale);
 
             // Update product inStock status
-            int totalQuantity = product.getSizeQuantities().stream()
-                    .mapToInt(SizeQuantity::getQuantity)
-                    .sum();
+            int totalQuantity;
+            if (productHasSizes) {
+                totalQuantity = product.getSizeQuantities().stream()
+                        .mapToInt(SizeQuantity::getQuantity)
+                        .sum();
+            } else {
+                totalQuantity = product.getQuantity() != null ? product.getQuantity() : 0;
+            }
             product.setInStock(totalQuantity > 0);
             productRepository.save(product);
         } else if ("DEDUCT_SALE_QUANTITY".equals(condition)) {
-            // Scenario 2: Only deduct from sale quantity
             if (sale == null) {
                 throw new IllegalStateException("Sale must be provided for 'Deduct Sale Quantity' condition");
             }
 
-            Map<String, Integer> saleSizeQuantities = sale.getSizeQuantities();
-            Map<String, Integer> updatedSaleQuantities = new HashMap<>(saleSizeQuantities);
-            for (Map.Entry<String, Integer> entry : returnQuantities.entrySet()) {
-                String size = entry.getKey();
-                int qty = entry.getValue();
-                int currentQty = saleSizeQuantities.getOrDefault(size, 0);
-                if (currentQty < qty) {
-                    throw new IllegalArgumentException("Insufficient quantity in sale for size: " + size);
+            // Re-fetch sale to ensure we have the latest quantity
+            Sale fetchedSale = salesRepository.findById(sale.getId())
+                    .orElseThrow(() -> new IllegalStateException("Sale not found with ID: " + sale.getId()));
+
+            if (fetchedSale.getSizeQuantities() != null && !fetchedSale.getSizeQuantities().isEmpty()) {
+                Map<String, Integer> saleSizeQuantities = fetchedSale.getSizeQuantities();
+                Map<String, Integer> updatedSaleQuantities = new HashMap<>(saleSizeQuantities);
+                for (Map.Entry<String, Integer> entry : normalizedReturnQuantities.entrySet()) {
+                    String size = entry.getKey();
+                    int qty = entry.getValue();
+                    int currentQty = saleSizeQuantities.getOrDefault(size, 0);
+                    if (currentQty < qty) {
+                        throw new IllegalArgumentException("Insufficient quantity in sale for size: " + size);
+                    }
+                    updatedSaleQuantities.put(size, currentQty - qty);
                 }
-                updatedSaleQuantities.put(size, currentQty - qty);
+                fetchedSale.setSizeQuantities(updatedSaleQuantities);
+            } else if (fetchedSale.getQuantity() != null) {
+                int totalReturnQty = normalizedReturnQuantities.getOrDefault("N/A", 0);
+                int currentQty = fetchedSale.getQuantity();
+                logger.debug("Before deduction - Sale ID {} quantity: {}, return quantity: {}", fetchedSale.getId(), currentQty, totalReturnQty);
+                if (currentQty < totalReturnQty) {
+                    throw new IllegalArgumentException("Insufficient quantity in sale for size: N/A");
+                }
+                fetchedSale.setQuantity(currentQty - totalReturnQty);
+                logger.debug("After deduction - Sale ID {} quantity: {}", fetchedSale.getId(), fetchedSale.getQuantity());
             }
-            sale.setSizeQuantities(updatedSaleQuantities);
-            salesRepository.save(sale);
+            salesRepository.save(fetchedSale);
         } else if ("DEDUCT_PRODUCT_QUANTITY".equals(condition)) {
-            // Scenario 3: Only deduct from product quantity
             if (product == null) {
                 throw new IllegalStateException("Product must be provided for 'Deduct Product Quantity' condition");
             }
 
-            Map<String, Integer> aggregatedProductQuantities = product.getSizeQuantities().stream()
-                    .collect(Collectors.toMap(
-                            SizeQuantity::getSize,
-                            SizeQuantity::getQuantity,
-                            (q1, q2) -> {
-                                logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", product.getProductId(), q1, q2);
-                                return q1;
-                            }));
+            // Check if the product has sizes
+            boolean productHasSizes = product.getHasSizes() != null && product.getHasSizes();
+            if (productHasSizes) {
+                // Handle products with sizes
+                Map<String, Integer> aggregatedProductQuantities = product.getSizeQuantities().stream()
+                        .collect(Collectors.toMap(
+                                SizeQuantity::getSize,
+                                SizeQuantity::getQuantity,
+                                (q1, q2) -> {
+                                    logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", product.getProductId(), q1, q2);
+                                    return q1;
+                                }));
 
-            // Update product quantities by deducting return quantities
-            for (Map.Entry<String, Integer> entry : returnQuantities.entrySet()) {
-                String size = entry.getKey();
-                int returnQty = entry.getValue();
-                int currentQty = aggregatedProductQuantities.getOrDefault(size, 0);
-                SizeQuantity sq = product.getSizeQuantities().stream()
-                        .filter(s -> s.getSize().equals(size))
-                        .findFirst()
-                        .orElseThrow(() -> new IllegalArgumentException("Size " + size + " not found in product inventory"));
-                if (currentQty < returnQty) {
-                    throw new IllegalArgumentException("Insufficient quantity in product for size: " + size);
+                // Update product quantities by deducting return quantities
+                for (Map.Entry<String, Integer> entry : normalizedReturnQuantities.entrySet()) {
+                    String size = entry.getKey();
+                    int returnQty = entry.getValue();
+                    int currentQty = aggregatedProductQuantities.getOrDefault(size, 0);
+                    SizeQuantity sq = product.getSizeQuantities().stream()
+                            .filter(s -> s.getSize().equals(size))
+                            .findFirst()
+                            .orElseThrow(() -> new IllegalArgumentException("Size " + size + " not found in product inventory"));
+                    if (currentQty < returnQty) {
+                        throw new IllegalArgumentException("Insufficient quantity in product for size: " + size);
+                    }
+                    sq.setQuantity(currentQty - returnQty);
                 }
-                sq.setQuantity(currentQty - returnQty);
+            } else {
+                // Handle products without sizes
+                int totalReturnQty = normalizedReturnQuantities.getOrDefault("N/A", 0);
+                int currentQty = product.getQuantity() != null ? product.getQuantity() : 0;
+                if (currentQty < totalReturnQty) {
+                    throw new IllegalArgumentException("Insufficient quantity in product for size: N/A");
+                }
+                product.setQuantity(currentQty - totalReturnQty);
             }
 
             // Update product inStock status
-            int totalQuantity = product.getSizeQuantities().stream()
-                    .mapToInt(SizeQuantity::getQuantity)
-                    .sum();
+            int totalQuantity;
+            if (productHasSizes) {
+                totalQuantity = product.getSizeQuantities().stream()
+                        .mapToInt(SizeQuantity::getQuantity)
+                        .sum();
+            } else {
+                totalQuantity = product.getQuantity() != null ? product.getQuantity() : 0;
+            }
             product.setInStock(totalQuantity > 0);
             productRepository.save(product);
         } else {
             throw new IllegalArgumentException("Invalid return condition: " + condition);
+        }
+    }
+
+    private String getProductNameForReturn(String productId) {
+        try {
+            Product product = productRepository.findAllWithSubcategoriesAndSizes().stream()
+                    .filter(p -> p.getProductId() != null && p.getProductId().equals(productId))
+                    .findFirst()
+                    .orElse(null);
+            return product != null && product.getName() != null ? product.getName() : "Product Not Found";
+        } catch (Exception e) {
+            logger.warn("Product fetch failed for return with productId {}: {}", productId, e.getMessage());
+            return "Product Not Found";
         }
     }
 
@@ -269,18 +381,7 @@ public class ReturnService {
                 dto.setReturnDate(returnEntity.getReturnDate());
                 dto.setReason(returnEntity.getReason());
                 dto.setSizeQuantities(returnEntity.getSizeQuantities());
-
-                try {
-                    Product product = productRepository.findAllWithSubcategoriesAndSizes().stream()
-                            .filter(p -> p.getProductId() != null && p.getProductId().equals(returnEntity.getProductId()))
-                            .findFirst()
-                            .orElse(null);
-                    dto.setProductName(product != null && product.getName() != null ? product.getName() : "Product Not Found");
-                } catch (Exception e) {
-                    logger.warn("Product fetch failed for return with productId {}: {}", returnEntity.getProductId(), e.getMessage());
-                    dto.setProductName("Product Not Found");
-                }
-
+                dto.setProductName(getProductNameForReturn(returnEntity.getProductId()));
                 return dto;
             }).collect(Collectors.toList());
         } catch (Exception e) {
@@ -296,14 +397,15 @@ public class ReturnService {
                     .filter(p -> p.getProductId().equals(productId))
                     .findFirst()
                     .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + productId));
-            return product.getSizeQuantities().stream()
-                    .collect(Collectors.toMap(
-                            SizeQuantity::getSize,
-                            SizeQuantity::getQuantity,
-                            (q1, q2) -> {
-                                logger.warn("Duplicate size detected in product {}: size={}, quantities={} and {}", productId, q1, q2);
-                                return q1;
-                            }));
+            Map<String, Integer> result = new HashMap<>();
+            if (product.getHasSizes() != null && product.getHasSizes() && product.getSizeQuantities() != null) {
+                product.getSizeQuantities().stream()
+                        .filter(sq -> sq.getQuantity() > 0)
+                        .forEach(sq -> result.put(sq.getSize(), sq.getQuantity()));
+            } else {
+                result.put("N/A", product.getQuantity() != null ? product.getQuantity() : 0);
+            }
+            return result;
         } catch (Exception e) {
             logger.error("Error fetching product sizes for productId {}: {}", productId, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch product sizes: " + e.getMessage(), e);
@@ -315,9 +417,19 @@ public class ReturnService {
         try {
             Sale sale = salesRepository.findById(saleId)
                     .orElseThrow(() -> new IllegalArgumentException("Sale not found with ID: " + saleId));
-            return sale.getSizeQuantities().entrySet().stream()
-                    .filter(entry -> entry.getValue() > 0)
-                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+            Map<String, Integer> result = new HashMap<>();
+            if (sale.getSizeQuantities() != null && !sale.getSizeQuantities().isEmpty()) {
+                sale.getSizeQuantities().entrySet().stream()
+                        .filter(entry -> entry.getValue() > 0)
+                        .forEach(entry -> result.put(entry.getKey(), entry.getValue()));
+            } else if (sale.getQuantity() != null && sale.getQuantity() >= 0) {
+                result.put("N/A", sale.getQuantity());
+            } else {
+                logger.warn("No valid quantities found for saleId: {}. Defaulting to 0 for N/A.", saleId);
+                result.put("N/A", 0);
+            }
+            logger.debug("getSaleSizes for saleId {} returned: {}", saleId, result);
+            return result;
         } catch (Exception e) {
             logger.error("Error fetching sale sizes for saleId {}: {}", saleId, e.getMessage(), e);
             throw new RuntimeException("Failed to fetch sale sizes: " + e.getMessage(), e);

@@ -39,25 +39,43 @@ const SalesManagement = () => {
                 axios.get('http://localhost:8080/api/sales'),
                 axios.get('http://localhost:8080/api/products')
             ]);
-            console.log("Sales API Response:", salesRes.data);
-            const salesData = Array.isArray(salesRes.data) ? salesRes.data : (salesRes.data.data || []);
-            if (!Array.isArray(salesData)) {
-                console.warn("Sales data is not an array, forcing empty array:", salesData);
-                setSales([]);
+            console.log("Sales API Response:", JSON.stringify(salesRes.data, null, 2));
+
+            // Ensure salesData is an array
+            let salesData = [];
+            if (salesRes.data && Array.isArray(salesRes.data.data)) {
+                salesData = salesRes.data.data;
+            } else if (Array.isArray(salesRes.data)) {
+                salesData = salesRes.data;
             } else {
-                console.log("Fetched Sales:", salesData);
+                console.warn("Sales data is not in expected format:", salesRes.data);
+                salesData = [];
+            }
+
+            if (salesData.length === 0) {
+                console.warn("No sales data returned from the API.");
+            } else {
+                console.log("Fetched Sales:", JSON.stringify(salesData, null, 2));
                 const initialTempQuantities = {};
-                salesData.forEach(sale => {
-                    if (sale.sizeQuantities) {
+                const enrichedSalesData = salesData.map(sale => {
+                    const hasSizes = sale.sizeQuantities && Object.keys(sale.sizeQuantities).length > 0;
+                    if (hasSizes) {
                         initialTempQuantities[sale.id] = { ...sale.sizeQuantities };
                     } else {
-                        initialTempQuantities[sale.id] = sale.quantity || 0;
+                        const quantity = parseInt(sale.quantity) || 0;
+                        initialTempQuantities[sale.id] = quantity;
                     }
+                    return { ...sale, hasSizes };
                 });
-                setSales(salesData);
+                setSales(enrichedSalesData);
                 setTempQuantities(initialTempQuantities);
+                console.log("Processed Sales (with hasSizes flag):", JSON.stringify(enrichedSalesData, null, 2));
+                console.log("Total Sales:", enrichedSalesData.length);
+                console.log("Sized Sales (hasSizes: true):", enrichedSalesData.filter(sale => sale.hasSizes).length);
+                console.log("Non-Sized Sales (hasSizes: false):", enrichedSalesData.filter(sale => !sale.hasSizes).length);
             }
-            setProducts(productsRes.data || []);
+
+            setProducts(Array.isArray(productsRes.data) ? productsRes.data : []);
         } catch (err) {
             console.error("Error fetching data:", err.response ? err.response.data : err.message);
             setError(err.response?.data?.error || 'Failed to fetch data: ' + err.message);
@@ -153,12 +171,13 @@ const SalesManagement = () => {
         const discount = parseFloat(sale.discount) || 0;
         let totalQuantity = 0;
 
-        if (sale.sizeQuantities) {
+        if (sale.hasSizes && sale.sizeQuantities) {
             const tempSizes = tempQuantities[sale.id] || sale.sizeQuantities;
             totalQuantity = Object.values(tempSizes)
                 .reduce((sum, qty) => sum + (parseInt(qty) || 0), 0);
         } else {
-            totalQuantity = parseInt(tempQuantities[sale.id] || sale.quantity) || 0;
+            const tempQty = tempQuantities[sale.id];
+            totalQuantity = typeof tempQty === 'number' ? tempQty : parseInt(sale.quantity) || 0;
         }
 
         const newTotalSellingPrice = (sellingPrice * totalQuantity) - discount;
@@ -184,8 +203,8 @@ const SalesManagement = () => {
             };
 
             const response = await axios.post('http://localhost:8080/api/sales', payload);
-            console.log("Sale Creation Response:", response.data);
-            const saleData = response.data[0] || response.data.invoice;
+            console.log("Sale Creation Response:", JSON.stringify(response.data, null, 2));
+            const saleData = response.data.sale || response.data.invoice;
 
             const maxSaleId = sales.length > 0 ? Math.max(...sales.map(sale => parseInt(sale.id) || 0)) : 0;
             const newTempSaleId = maxSaleId + 1;
@@ -253,7 +272,7 @@ const SalesManagement = () => {
     };
 
     const getFilteredSales = () => {
-        if (!selectedProductId) return sales; // If no Product ID selected, return all sales
+        if (!selectedProductId) return sales;
         return sales.filter(sale => String(sale.productId) === String(selectedProductId));
     };
 
@@ -285,7 +304,6 @@ const SalesManagement = () => {
                     Record New Sale
                 </Button>
 
-                {/* Product ID Filter */}
                 <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
                     <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
                         <InputLabel>Product ID</InputLabel>
@@ -467,7 +485,7 @@ const SalesManagement = () => {
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Sale Date</span> {new Date().toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' })}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product ID</span> {invoice.productId || 'N/A'}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Product Name</span> {invoice.productName || 'N/A'}</Box>
-                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}> Unit Selling Price</span> {(parseFloat(invoice.sellingPrice) || 0).toFixed(2)}</Box>
+                                <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Unit Selling Price</span> {(parseFloat(invoice.sellingPrice) || 0).toFixed(2)}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Quantity</span> {invoice.quantity || (invoice.sizeQuantities ? Object.entries(invoice.sizeQuantities).map(([size, qty]) => `Size ${size}: ${qty}`).join(', ') : 'N/A')}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Discount</span> {(parseFloat(invoice.discount) || 0).toFixed(2)}</Box>
                                 <Box sx={{ margin: '10px 0' }}><span style={{ display: 'inline-block', width: '100px', fontWeight: 'bold' }}>Selling Price</span> {(parseFloat(invoice.totalSellingPrice) || 0).toFixed(2)}</Box>
@@ -515,44 +533,51 @@ const SalesManagement = () => {
                                     </TableCell>
                                 </TableRow>
                             ) : getFilteredSales().length > 0 ? (
-                                [...getFilteredSales()].reverse().map(sale => (
-                                    <TableRow key={sale.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
-                                        <TableCell>{sale.id || 'N/A'}</TableCell>
-                                        <TableCell>{sale.productId || 'N/A'}</TableCell>
-                                        <TableCell>{sale.productName || 'N/A'}</TableCell>
-                                        <TableCell>
-                                            {sale.image ? (
-                                                <img src={`data:image/jpeg;base64,${sale.image}`} alt="Product" style={{ width: '50px' }} />
-                                            ) : 'N/A'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {sale.saleDate ? new Date(sale.saleDate).toLocaleDateString('en-US', {
-                                                year: 'numeric',
-                                                month: '2-digit',
-                                                day: '2-digit',
-                                            }) : 'N/A'}
-                                        </TableCell>
-                                        <TableCell>{sale.category || 'N/A'}</TableCell>
-                                        <TableCell>
-                                            {sale.subcategories && Object.keys(sale.subcategories).length > 0
-                                                ? Object.entries(sale.subcategories)
-                                                    .filter(([_, v]) => v && v.trim() !== '')
-                                                    .map(([k, v]) => `${k}: ${v}`)
-                                                    .join(', ')
-                                                : 'N/A'}
-                                        </TableCell>
-                                        <TableCell>
-                                            {sale.sizeQuantities
-                                                ? Object.entries(tempQuantities[sale.id] || sale.sizeQuantities)
-                                                    .map(([size, qty]) => `Size ${size}: ${qty}`)
-                                                    .join(', ')
-                                                : (tempQuantities[sale.id] !== undefined ? tempQuantities[sale.id] : sale.quantity) || 'N/A'}
-                                        </TableCell>
-                                        <TableCell>{(parseFloat(sale.sellingPrice) || 0).toFixed(2)}</TableCell>
-                                        <TableCell>{(parseFloat(sale.discount) || 0).toFixed(2)}</TableCell>
-                                        <TableCell>{calculateSaleTotalSellingPrice(sale).toFixed(2)}</TableCell>
-                                    </TableRow>
-                                ))
+                                [...getFilteredSales()].reverse().map(sale => {
+                                    console.log("Rendering sale:", sale);
+                                    const tempQty = tempQuantities[sale.id] || {};
+                                    let displayQuantity;
+                                    if (sale.hasSizes && sale.sizeQuantities) {
+                                        displayQuantity = Object.entries(tempQty || sale.sizeQuantities)
+                                            .map(([size, qty]) => `Size ${size}: ${qty}`)
+                                            .join(', ');
+                                    } else {
+                                        displayQuantity = typeof tempQty === 'number' ? tempQty : parseInt(sale.quantity) || 0;
+                                        displayQuantity = displayQuantity.toString();
+                                    }
+                                    return (
+                                        <TableRow key={sale.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
+                                            <TableCell>{sale.id || 'N/A'}</TableCell>
+                                            <TableCell>{sale.productId || 'N/A'}</TableCell>
+                                            <TableCell>{sale.productName || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                {sale.image ? (
+                                                    <img src={`data:image/jpeg;base64,${sale.image}`} alt="Product" style={{ width: '50px' }} />
+                                                ) : 'N/A'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {sale.saleDate ? new Date(sale.saleDate).toLocaleDateString('en-US', {
+                                                    year: 'numeric',
+                                                    month: '2-digit',
+                                                    day: '2-digit',
+                                                }) : 'N/A'}
+                                            </TableCell>
+                                            <TableCell>{sale.category || 'N/A'}</TableCell>
+                                            <TableCell>
+                                                {sale.subcategories && Object.keys(sale.subcategories).length > 0
+                                                    ? Object.entries(sale.subcategories)
+                                                        .filter(([_, v]) => v && v.trim() !== '')
+                                                        .map(([k, v]) => `${k}: ${v}`)
+                                                        .join(', ')
+                                                    : 'N/A'}
+                                            </TableCell>
+                                            <TableCell>{displayQuantity || 'N/A'}</TableCell>
+                                            <TableCell>{(parseFloat(sale.sellingPrice) || 0).toFixed(2)}</TableCell>
+                                            <TableCell>{(parseFloat(sale.discount) || 0).toFixed(2)}</TableCell>
+                                            <TableCell>{calculateSaleTotalSellingPrice(sale).toFixed(2)}</TableCell>
+                                        </TableRow>
+                                    );
+                                })
                             ) : (
                                 <TableRow>
                                     <TableCell colSpan={11} sx={{ textAlign: 'center', py: 2 }}>

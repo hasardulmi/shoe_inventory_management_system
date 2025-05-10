@@ -32,7 +32,13 @@ public class SalesService {
     public List<Sale> getAllSales() {
         try {
             List<Sale> sales = salesRepository.findAll();
-            logger.info("Successfully fetched {} sales from the database", sales.size());
+            // Force initialization of sizeQuantities to avoid lazy loading issues
+            sales.forEach(sale -> {
+                if (sale.getSizeQuantities() != null) {
+                    sale.getSizeQuantities().forEach((size, qty) -> {});
+                }
+            });
+            logger.info("Successfully fetched {} sales from the database: {}", sales.size(), sales);
             return sales;
         } catch (Exception e) {
             logger.error("Error fetching sales from repository: {}", e.getMessage(), e);
@@ -47,7 +53,7 @@ public class SalesService {
                     .orElseThrow(() -> new IllegalArgumentException("Product not found with ID: " + productId));
             if (product.getSizeQuantities() != null) {
                 product.getSizeQuantities().forEach(sq -> {
-                    if (sq != null) sq.getQuantity(); // Force initialization
+                    if (sq != null) sq.getQuantity();
                 });
             }
             if (product.getSubcategories() != null) {
@@ -67,7 +73,7 @@ public class SalesService {
             Product product = getProductDetails(saleDTO.getProductId());
             Sale sale = new Sale();
             sale.setProductId(saleDTO.getProductId());
-            sale.setSaleDate(LocalDate.now()); // Automatically set current date
+            sale.setSaleDate(LocalDate.now());
             sale.setQuantity(saleDTO.getQuantity());
             sale.setSizeQuantities(saleDTO.getSizeQuantities());
             sale.setDiscount(saleDTO.getDiscount());
@@ -80,15 +86,13 @@ public class SalesService {
             double totalSellingPrice = (sellingPrice * totalQuantity) - discount;
             sale.setTotalSellingPrice(totalSellingPrice);
 
-            // Initialize sizeQuantities to avoid lazy loading issues
             if (sale.getSizeQuantities() != null) {
-                sale.getSizeQuantities().forEach((size, qty) -> {}); // Force initialization
+                sale.getSizeQuantities().forEach((size, qty) -> {});
             }
 
             Sale savedSale = salesRepository.save(sale);
             logger.info("Successfully saved sale with ID: {}", savedSale.getId());
 
-            // Update product quantity
             if (product.getSizeQuantities() != null && saleDTO.getSizeQuantities() != null) {
                 Map<String, Integer> productSizeQuantities = product.getSizeQuantities().stream()
                         .collect(Collectors.toMap(
@@ -105,7 +109,6 @@ public class SalesService {
                     productSizeQuantities.put(size, currentQty - qty);
                 });
 
-                // Update existing SizeQuantity entities in place
                 product.getSizeQuantities().clear();
                 productSizeQuantities.forEach((size, qty) -> {
                     SizeQuantity sq = new SizeQuantity();
@@ -129,13 +132,14 @@ public class SalesService {
             result.setImage(product.getImage());
             result.setCategory(product.getCategory() != null ? product.getCategory().getCategoryName() : "N/A");
             result.setSubcategories(product.getSubcategories());
-            result.setSaleDate(savedSale.getSaleDate()); // Map LocalDate directly
+            result.setSaleDate(savedSale.getSaleDate());
             result.setQuantity(savedSale.getQuantity());
             result.setSizeQuantities(savedSale.getSizeQuantities());
             result.setSellingPrice(product.getSellingPrice());
             result.setDiscount(savedSale.getDiscount());
             result.setTotalSellingPrice(savedSale.getTotalSellingPrice());
 
+            logger.info("Created SaleDTO: {}", result);
             return List.of(result);
         } catch (Exception e) {
             logger.error("Error creating sale: {}", e.getMessage(), e);

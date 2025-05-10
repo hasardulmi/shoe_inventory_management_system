@@ -13,7 +13,7 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
         saleId: '',
         reason: '',
         sizeQuantities: [{ size: '', quantity: '' }],
-        condition: '', // New field for return condition
+        condition: '',
     });
     const [availableSizes, setAvailableSizes] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -23,8 +23,7 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
         setError('');
         setAvailableSizes([]);
 
-        // Only fetch sizes if conditions are met and IDs are valid
-        const isValidProductId = formData.productId && formData.productId.trim().length > 0; // Allow non-numeric IDs
+        const isValidProductId = formData.productId && formData.productId.trim().length > 0;
         const isValidSaleId = formData.saleId && !isNaN(parseInt(formData.saleId)) && parseInt(formData.saleId) > 0;
 
         console.log('useEffect triggered - productId:', formData.productId, 'saleId:', formData.saleId, 'condition:', formData.condition);
@@ -55,7 +54,20 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
             console.log(`Fetching sale sizes for saleId: ${formData.saleId}`);
             const response = await axios.get(`http://localhost:8080/api/returns/sale-sizes/${formData.saleId}`);
             console.log("fetchSaleSizes response:", response.data);
-            setAvailableSizes(Object.entries(response.data).map(([size, quantity]) => ({ size, available: quantity })));
+            if (response.data && typeof response.data === 'object') {
+                const sizes = Object.entries(response.data).map(([size, quantity]) => ({ size, available: quantity }));
+                setAvailableSizes(sizes);
+                // Preselect "N/A" if it's the only size available (for hasSizes: false sales)
+                if (sizes.length === 1 && sizes[0].size === "N/A") {
+                    setFormData(prev => ({
+                        ...prev,
+                        sizeQuantities: [{ size: "N/A", quantity: '' }]
+                    }));
+                }
+            } else {
+                console.warn("Unexpected response format:", response.data);
+                setAvailableSizes([]);
+            }
         } catch (err) {
             console.error("Error in fetchSaleSizes:", err);
             setError(`Error fetching sale sizes: ${err.response?.data?.error || err.message}`);
@@ -93,10 +105,10 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
-        console.log(`Input change - ${name}: ${value}`); // Debug log
+        console.log(`Input change - ${name}: ${value}`);
         setFormData(prev => {
             const updatedFormData = { ...prev, [name]: value };
-            console.log(`Updated formData - ${name}: ${updatedFormData[name]}`); // Debug updated state
+            console.log(`Updated formData - ${name}: ${updatedFormData[name]}`);
             return updatedFormData;
         });
     };
@@ -127,68 +139,95 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
         }));
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    const validateAndSubmit = async () => {
         setError('');
         setLoading(true);
 
-        try {
-            const payload = {
-                productId: formData.productId || null,
-                saleId: formData.saleId ? parseInt(formData.saleId) : null,
-                returnDate: formData.returnDate,
-                reason: formData.reason,
-                sizeQuantities: formData.sizeQuantities.reduce((acc, sq) => {
-                    if (sq.size && sq.quantity) {
-                        const available = availableSizes.find(s => s.size === sq.size)?.available || 0;
-                        const quantity = parseInt(sq.quantity);
-                        if (quantity <= 0 || isNaN(quantity)) {
-                            throw new Error(`Invalid quantity for size ${sq.size}. Must be a positive number.`);
-                        }
-                        if (quantity > available) {
-                            throw new Error(`Return quantity (${quantity}) exceeds available quantity (${available}) for size ${sq.size}`);
-                        }
-                        acc[sq.size] = quantity;
+        const maxRetries = 3;
+        let attempt = 0;
+
+        while (attempt < maxRetries) {
+            try {
+                // Re-fetch sale sizes to ensure quantities are up-to-date
+                if (formData.saleId && (formData.condition === 'ADD_PRODUCT_QUANTITY' || formData.condition === 'DEDUCT_SALE_QUANTITY')) {
+                    const response = await axios.get(`http://localhost:8080/api/returns/sale-sizes/${formData.saleId}`);
+                    if (response.data && typeof response.data === 'object') {
+                        const updatedSizes = Object.entries(response.data).map(([size, quantity]) => ({ size, available: quantity }));
+                        setAvailableSizes(updatedSizes);
+                    } else {
+                        throw new Error('Failed to fetch updated sale sizes');
                     }
-                    return acc;
-                }, {}),
-                condition: formData.condition, // Include the condition in the payload
-            };
+                }
 
-            if (!payload.reason || Object.keys(payload.sizeQuantities).length === 0) {
-                throw new Error('Reason and at least one size with quantity are required');
+                const payload = {
+                    productId: formData.productId || null,
+                    saleId: formData.saleId ? parseInt(formData.saleId) : null,
+                    returnDate: formData.returnDate,
+                    reason: formData.reason,
+                    sizeQuantities: formData.sizeQuantities.reduce((acc, sq) => {
+                        if (sq.size && sq.quantity) {
+                            const available = availableSizes.find(s => s.size === sq.size)?.available || 0;
+                            const quantity = parseInt(sq.quantity);
+                            if (quantity <= 0 || isNaN(quantity)) {
+                                throw new Error(`Invalid quantity for size ${sq.size}. Must be a positive number.`);
+                            }
+                            if (quantity > available) {
+                                throw new Error(`Return quantity (${quantity}) exceeds available quantity (${available}) for size ${sq.size}`);
+                            }
+                            acc[sq.size] = quantity;
+                        }
+                        return acc;
+                    }, {}),
+                    condition: formData.condition,
+                };
+
+                if (!payload.reason || Object.keys(payload.sizeQuantities).length === 0) {
+                    throw new Error('Reason and at least one size with quantity are required');
+                }
+
+                if (!payload.condition) {
+                    throw new Error('Please select a return condition');
+                }
+
+                console.log("Submitting return payload:", payload);
+                const response = await axios.post('http://localhost:8080/api/returns', payload);
+                console.log("Submit response:", response.data);
+                onSuccess('Return recorded successfully!');
+                setFormData({
+                    returnDate: new Date().toISOString().split('T')[0],
+                    productId: '',
+                    saleId: '',
+                    reason: '',
+                    sizeQuantities: [{ size: '', quantity: '' }],
+                    condition: '',
+                });
+                setAvailableSizes([]);
+                onClose();
+                break; // Exit loop if successful
+            } catch (err) {
+                console.error("Error in validateAndSubmit (attempt " + (attempt + 1) + "):", err);
+                if (err.response?.data?.error?.includes("OptimisticLockException") && attempt < maxRetries - 1) {
+                    attempt++;
+                    console.log("Retrying due to OptimisticLockException, attempt " + (attempt + 1));
+                    await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+                    continue;
+                }
+                setError(err.response?.data?.error || err.message);
+                break;
+            } finally {
+                setLoading(false);
             }
-
-            if (!payload.condition) {
-                throw new Error('Please select a return condition');
-            }
-
-            console.log("Submitting return payload:", payload);
-            const response = await axios.post('http://localhost:8080/api/returns', payload);
-            console.log("Submit response:", response.data);
-            onSuccess('Return recorded successfully!');
-            setFormData({
-                returnDate: new Date().toISOString().split('T')[0],
-                productId: '',
-                saleId: '',
-                reason: '',
-                sizeQuantities: [{ size: '', quantity: '' }],
-                condition: '',
-            });
-            setAvailableSizes([]);
-            onClose();
-        } catch (err) {
-            console.error("Error in handleSubmit:", err);
-            setError(err.response?.data?.error || err.message);
-        } finally {
-            setLoading(false);
         }
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        validateAndSubmit();
     };
 
     const isButtonDisabled = loading || !formData.reason || !formData.condition ||
         formData.sizeQuantities.some(sq => !sq.size || !sq.quantity || parseInt(sq.quantity) <= 0 || isNaN(parseInt(sq.quantity)));
 
-    // Determine which conditions are available based on input fields
     const hasProductId = !!formData.productId;
     const hasSaleId = !!formData.saleId;
     const bothIdsPresent = hasProductId && hasSaleId;
@@ -303,8 +342,11 @@ const ReturnDialog = ({ open, onClose, onSuccess }) => {
                                         fullWidth
                                         required
                                         variant="outlined"
-                                        inputProps={{ min: 1 }}
-                                        disabled={!sq.size}
+                                        inputProps={{
+                                            min: 1,
+                                            max: availableSizes.find(s => s.size === sq.size)?.available || 1
+                                        }}
+                                        disabled={!availableSizes.length || !sq.size}
                                     />
                                 </Grid>
                                 <Grid item xs={2}>
