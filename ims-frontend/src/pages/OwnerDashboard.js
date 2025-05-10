@@ -47,15 +47,18 @@ function OwnerDashboard() {
 
         const fetchAndSetData = async () => {
             try {
-                const [productsRes, salesRes] = await Promise.all([
+                const [productsRes, salesRes, usersRes] = await Promise.all([
                     axios.get('http://localhost:8080/api/products'),
                     axios.get('http://localhost:8080/api/sales'),
+                    axios.get('http://localhost:8080/api/employees'), // Fetch users
                 ]);
 
                 if (!isMounted) return;
 
+                // Process products data
                 const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.data || []);
                 const sales = Array.isArray(salesRes.data) ? salesRes.data : (salesRes.data.data || []);
+                const users = Array.isArray(usersRes.data) ? usersRes.data : [];
 
                 if (!products || !Array.isArray(products)) {
                     console.error("Products data is not an array:", products);
@@ -63,6 +66,10 @@ function OwnerDashboard() {
                 }
                 if (!sales || !Array.isArray(sales)) {
                     console.error("Sales data is not an array:", sales);
+                    return;
+                }
+                if (!users || !Array.isArray(users)) {
+                    console.error("Users data is not an array:", users);
                     return;
                 }
 
@@ -79,17 +86,11 @@ function OwnerDashboard() {
                 ).length;
                 setOverviewData({ totalProducts, totalSales, totalStock, outOfStock });
 
-                const totalEmployees = 0;
-                const totalOwners = 2;
-                setUserData({ totalOwners, totalEmployees });
-
                 // Calculate total sold products by summing both sizeQuantities and quantity
                 const soldProducts = sales.reduce((sum, s) => {
                     if (s.sizeQuantities && Object.keys(s.sizeQuantities).length > 0) {
-                        // For products with sizes, sum the quantities in sizeQuantities
                         return sum + Object.values(s.sizeQuantities).reduce((total, qty) => total + (parseInt(qty) || 0), 0);
                     } else {
-                        // For products without sizes, use the quantity field
                         return sum + (parseInt(s.quantity) || 0);
                     }
                 }, 0);
@@ -137,6 +138,11 @@ function OwnerDashboard() {
                 const profitLabels = Object.keys(monthlyProfit).sort();
                 const profitDataValues = profitLabels.map(date => monthlyProfit[date] || 0);
                 setProfitData({ labels: profitLabels, data: profitDataValues });
+
+                // Count total owners and employees
+                const totalOwners = users.filter(user => user.role === 'OWNER').length;
+                const totalEmployees = users.filter(user => user.role === 'EMPLOYEE').length;
+                setUserData({ totalOwners, totalEmployees });
             } catch (err) {
                 console.error('Error fetching dashboard data:', err);
             }
@@ -157,7 +163,7 @@ function OwnerDashboard() {
             {
                 data: [
                     inventoryData.soldProducts || 0,
-                    inventoryData.totalProducts || 0 // totalProducts already represents the remaining stock
+                    inventoryData.totalProducts || 0
                 ],
                 backgroundColor: ['#36A2EB', '#FF6384'],
             },
@@ -194,7 +200,7 @@ function OwnerDashboard() {
                 <Box sx={{ bgcolor: '#fff', p: 3, borderRadius: 1, boxShadow: 2 }}>
                     <Box sx={{ mb: 4 }}>
                         <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
-                            Over View
+                            Overview
                         </Typography>
                         <Grid container spacing={2}>
                             <Grid item>
@@ -244,10 +250,13 @@ function OwnerDashboard() {
                         <Grid item xs={4}>
                             <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1, height: '100%' }}>
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    No of users
+                                    Number of Users
                                 </Typography>
                                 <Typography variant="body1">
-                                    Total Customers: {userData.totalOwners}K
+                                    Total Owners: {userData.totalOwners}
+                                </Typography>
+                                <Typography variant="body1">
+                                    Total Employees: {userData.totalEmployees}
                                 </Typography>
                             </Card>
                         </Grid>
