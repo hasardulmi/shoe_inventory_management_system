@@ -1,13 +1,12 @@
 package net.javaguides.ims_backend.controller;
 
-import net.javaguides.ims_backend.entity.User;
+import net.javaguides.ims_backend.dto.UserDTO;
 import net.javaguides.ims_backend.service.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,23 +22,15 @@ public class UserController {
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         logger.debug("Login attempt for email: {}", loginRequest.getEmail());
         try {
-            User user = userService.findByEmail(loginRequest.getEmail())
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-            if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
-                logger.warn("Invalid password for email: {}", loginRequest.getEmail());
-                throw new RuntimeException("Invalid password");
-            }
+            UserDTO userDTO = userService.login(loginRequest.getEmail(), loginRequest.getPassword());
             logger.info("Login successful for email: {}", loginRequest.getEmail());
             Map<String, Object> response = new HashMap<>();
-            response.put("user", user);
-            response.put("role", user.getRole());
+            response.put("user", userDTO);
+            response.put("role", userDTO.getRole());
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             logger.error("Login failed for email: {}. Error: {}", loginRequest.getEmail(), e.getMessage());
@@ -55,24 +46,14 @@ public class UserController {
     }
 
     @PostMapping("/register-employee")
-    public ResponseEntity<?> registerEmployee(@RequestBody User user) {
-        logger.debug("Register attempt for email: {}", user.getEmail());
+    public ResponseEntity<?> registerEmployee(@RequestBody UserDTO userDTO) {
+        logger.debug("Register attempt for email: {}", userDTO.getEmail());
         try {
-            if (user.getJobTitle() == null || user.getJobTitle().isEmpty()) {
-                user.setJobTitle("Employee");
-            }
-            if (user.getRole() == null || user.getRole().isEmpty()) {
-                user.setRole(user.getJobTitle().toUpperCase());
-            }
-            if (user.getPassword() == null || user.getPassword().isEmpty()) {
-                throw new RuntimeException("Password is required");
-            }
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-            User savedUser = userService.saveUser(user);
-            logger.info("User registered successfully: {}", user.getEmail());
-            return ResponseEntity.ok(savedUser);
+            UserDTO savedUserDTO = userService.saveUser(userDTO);
+            logger.info("User registered successfully: {}", userDTO.getEmail());
+            return ResponseEntity.ok(savedUserDTO);
         } catch (RuntimeException e) {
-            logger.error("Registration failed for email: {}. Error: {}", user.getEmail(), e.getMessage());
+            logger.error("Registration failed for email: {}. Error: {}", userDTO.getEmail(), e.getMessage());
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
@@ -80,43 +61,40 @@ public class UserController {
     }
 
     @GetMapping("/employees")
-    public ResponseEntity<List<User>> getAllEmployees() {
+    public ResponseEntity<List<UserDTO>> getAllEmployees() {
         logger.debug("Fetching all employees");
-        List<User> employees = userService.getAllEmployees();
+        List<UserDTO> employees = userService.getAllEmployees();
         return ResponseEntity.ok(employees);
     }
 
     @GetMapping("/employee/self")
-    public ResponseEntity<User> getSelfDetails(@RequestParam String email) {
+    public ResponseEntity<UserDTO> getSelfDetails(@RequestParam String email) {
         logger.debug("Fetching details for email: {}", email);
-        User user = userService.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return ResponseEntity.ok(user);
+        UserDTO userDTO = userService.getCurrentUser(email);
+        return ResponseEntity.ok(userDTO);
     }
 
     @PutMapping("/employees/{id}")
-    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody User user) {
+    public ResponseEntity<?> updateEmployee(@PathVariable Long id, @RequestBody UserDTO userDTO) {
         logger.debug("Updating user with id: {}", id);
         try {
-            user.setId(id);
-            if (user.getJobTitle() == null || user.getJobTitle().isEmpty()) {
-                User existingUser = userService.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Employee not found"));
-                user.setJobTitle(existingUser.getJobTitle());
+            userDTO.setId(id);
+            UserDTO existingUserDTO = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Employee not found"));
+
+            // Preserve existing fields if not provided
+            if (userDTO.getJobTitle() == null || userDTO.getJobTitle().isEmpty()) {
+                userDTO.setJobTitle(existingUserDTO.getJobTitle());
             }
-            if (user.getRole() == null || user.getRole().isEmpty()) {
-                user.setRole(user.getJobTitle().toUpperCase());
+            if (userDTO.getRole() == null || userDTO.getRole().isEmpty()) {
+                userDTO.setRole(userDTO.getJobTitle().toUpperCase());
             }
-            if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-                user.setPassword(passwordEncoder.encode(user.getPassword()));
-            } else {
-                User existingUser = userService.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Employee not found"));
-                user.setPassword(existingUser.getPassword());
+            if (userDTO.getPassword() == null || userDTO.getPassword().isEmpty()) {
+                userDTO.setPassword(existingUserDTO.getPassword());
             }
-            User updatedUser = userService.saveUser(user);
-            logger.info("User updated successfully: {}", user.getEmail());
-            return ResponseEntity.ok(updatedUser);
+            UserDTO updatedUserDTO = userService.saveUser(userDTO);
+            logger.info("User updated successfully: {}", userDTO.getEmail());
+            return ResponseEntity.ok(updatedUserDTO);
         } catch (RuntimeException e) {
             logger.error("Update failed for id: {}. Error: {}", id, e.getMessage());
             Map<String, String> errorResponse = new HashMap<>();

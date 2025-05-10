@@ -1,5 +1,6 @@
 package net.javaguides.ims_backend.service;
 
+import net.javaguides.ims_backend.dto.UserDTO;
 import net.javaguides.ims_backend.entity.User;
 import net.javaguides.ims_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,28 +20,45 @@ public class UserService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public User saveUser(User user) {
-        if (user.getId() == null || !userRepository.findById(user.getId())
-                .map(User::getEmail).equals(Optional.of(user.getEmail()))) {
-            if (userRepository.existsByEmail(user.getEmail())) {
-                throw new RuntimeException("Email already exists");
-            }
+    public UserDTO saveUser(UserDTO userDTO) {
+        // Convert DTO to Entity
+        User user = convertToEntity(userDTO);
+
+        // Check for email uniqueness unless it's the same user (for updates)
+        Optional<User> existingUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser.isPresent() && (user.getId() == null || !existingUser.get().getId().equals(user.getId()))) {
+            throw new RuntimeException("Email already exists");
         }
-        return userRepository.save(user);
+
+        // Encode password if provided
+        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(user.getPassword()));
+        }
+
+        // Set default job title and role if not provided
+        if (user.getJobTitle() == null || user.getJobTitle().isEmpty()) {
+            user.setJobTitle("Employee");
+        }
+        if (user.getRole() == null || user.getRole().isEmpty()) {
+            user.setRole(user.getJobTitle().toUpperCase());
+        }
+
+        User savedUser = userRepository.save(user);
+        return convertToDTO(savedUser);
     }
 
-    public Optional<User> findById(Long id) {
-        return userRepository.findById(id);
+    public Optional<UserDTO> findById(Long id) {
+        return userRepository.findById(id).map(this::convertToDTO);
     }
 
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email);
+    public Optional<UserDTO> findByEmail(String email) {
+        return userRepository.findByEmail(email).map(this::convertToDTO);
     }
 
-    public List<User> getAllEmployees() {
+    public List<UserDTO> getAllEmployees() {
         return userRepository.findAll().stream()
-                .filter(user -> user.getJobTitle() != null &&
-                        user.getJobTitle().toLowerCase().equals("employee"))
+                .filter(user -> user.getJobTitle() != null )
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -51,8 +69,51 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
-    public User getCurrentUser(String email) {
-        return userRepository.findByEmail(email)
+    public UserDTO getCurrentUser(String email) {
+        return convertToDTO(userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found")));
+    }
+
+    public UserDTO login(String email, String password) {
+        User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            throw new RuntimeException("Invalid password");
+        }
+        return convertToDTO(user);
+    }
+
+    // Helper method to convert User to UserDTO
+    private UserDTO convertToDTO(User user) {
+        UserDTO dto = new UserDTO();
+        dto.setId(user.getId());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setAddress(user.getAddress());
+        dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setEmail(user.getEmail());
+        dto.setJobTitle(user.getJobTitle());
+        dto.setSalary(user.getSalary());
+        dto.setHireDate(user.getHireDate());
+        dto.setPassword(user.getPassword()); // Note: Typically, password should not be returned
+        dto.setRole(user.getRole());
+        return dto;
+    }
+
+    // Helper method to convert UserDTO to User
+    private User convertToEntity(UserDTO dto) {
+        User user = new User();
+        user.setId(dto.getId());
+        user.setFirstName(dto.getFirstName());
+        user.setLastName(dto.getLastName());
+        user.setAddress(dto.getAddress());
+        user.setPhoneNumber(dto.getPhoneNumber());
+        user.setEmail(dto.getEmail());
+        user.setJobTitle(dto.getJobTitle());
+        user.setSalary(dto.getSalary());
+        user.setHireDate(dto.getHireDate());
+        user.setPassword(dto.getPassword()); // Password will be encoded in saveUser if needed
+        user.setRole(dto.getRole());
+        return user;
     }
 }

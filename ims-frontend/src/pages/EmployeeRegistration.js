@@ -19,7 +19,9 @@ import {
     Typography,
     CircularProgress,
     Box,
-    Paper
+    Paper,
+    Snackbar,
+    Alert
 } from '@mui/material';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -50,6 +52,7 @@ function EmployeeRegistration() {
     const [isUpdate, setIsUpdate] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const navigate = useNavigate();
 
@@ -59,7 +62,6 @@ function EmployeeRegistration() {
     useEffect(() => {
         const checkSessionAndFetch = async () => {
             try {
-                // Verify session by fetching current user (assumes /api/employee/self is accessible)
                 const role = localStorage.getItem('userRole');
                 if (role !== 'OWNER') {
                     navigate('/login');
@@ -79,15 +81,42 @@ function EmployeeRegistration() {
         setError('');
         try {
             const response = await axios.get(`${BASE_URL}/api/employees`);
-            const employeeData = response.data.filter(user =>
-                user.jobTitle && user.jobTitle.toLowerCase() === 'employee'
-            );
+            const employeeData = response.data.map(user => {
+                let hireDateStr = '';
+                if (user.hire_date) {
+                    if (Array.isArray(user.hire_date)) {
+                        // Handle array format [year, month, day]
+                        const [year, month, day] = user.hire_date;
+                        hireDateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    } else if (typeof user.hire_date === 'string') {
+                        hireDateStr = user.hire_date.split('T')[0]; // Handle ISO string
+                    } else if (user.hire_date instanceof Object && user.hire_date.hasOwnProperty('year')) {
+                        // Handle object format { year, month, day }
+                        hireDateStr = `${user.hire_date.year}-${String(user.hire_date.month).padStart(2, '0')}-${String(user.hire_date.day).padStart(2, '0')}`;
+                    } else {
+                        hireDateStr = user.hire_date.toString().split('T')[0] || user.hire_date.toString();
+                    }
+                }
+                console.log('User hire_date:', user.hire_date, 'Processed hireDateStr:', hireDateStr); // Debug log
+                return {
+                    id: user.id,
+                    firstName: user.first_name || '',
+                    lastName: user.last_name || '',
+                    address: user.address || '',
+                    phoneNumber: user.phoneNumber || '',
+                    email: user.email || '',
+                    jobTitle: user.job_title || 'Employee',
+                    salary: user.salary || 0,
+                    hireDate: hireDateStr,
+                    role: user.role || ''
+                };
+            });
             console.log('Raw API Response:', response.data);
-            console.log('Filtered Employees:', employeeData);
+            console.log('Mapped Employees:', employeeData);
             setEmployees(employeeData);
         } catch (error) {
             console.error('Error fetching employees:', error);
-            setError(`Failed to load employees: ${error.message}`);
+            setError(`Failed to load employees: ${error.response?.data?.error || error.message}`);
         } finally {
             setLoading(false);
         }
@@ -97,6 +126,8 @@ function EmployeeRegistration() {
         e.preventDefault();
         setPasswordError('');
         setEmailError('');
+        setError('');
+        setSuccess('');
 
         if (!isUpdate || (isUpdate && formData.password)) {
             if (formData.password !== formData.confirmPassword) {
@@ -111,20 +142,20 @@ function EmployeeRegistration() {
 
         const salary = parseFloat(formData.salary);
         if (isNaN(salary) || salary < 0) {
-            setError('Salary must be a valid number');
+            setError('Salary must be a valid positive number');
             return;
         }
 
         const payload = {
-            firstName: formData.firstName,
-            lastName: formData.lastName,
+            first_name: formData.firstName,
+            last_name: formData.lastName,
             address: formData.address,
             phoneNumber: formData.phoneNumber,
             email: formData.email,
-            jobTitle: formData.jobTitle,
+            job_title: formData.jobTitle,
             role: formData.jobTitle.toUpperCase(),
             salary: salary,
-            hireDate: formData.hireDate,
+            hire_date: formData.hireDate,
             ...(formData.password && { password: formData.password })
         };
         console.log('Submitting Payload:', payload);
@@ -133,18 +164,25 @@ function EmployeeRegistration() {
             setLoading(true);
             if (isUpdate) {
                 await axios.put(`${BASE_URL}/api/employees/${formData.id}`, payload);
+                setSuccess('Employee updated successfully!');
             } else {
                 await axios.post(`${BASE_URL}/api/register-employee`, payload);
+                setSuccess('Employee added successfully!');
             }
             setOpen(false);
             fetchEmployees();
             resetForm();
         } catch (error) {
             if (error.response && error.response.status === 400) {
-                setEmailError('Email already exists');
+                const errorMessage = error.response.data.error;
+                if (errorMessage.includes("Email already exists")) {
+                    setEmailError('Email already exists');
+                } else {
+                    setError(errorMessage || 'Failed to save employee');
+                }
             } else {
                 console.error('Error submitting form:', error);
-                setError('Failed to save employee');
+                setError('Failed to save employee: Network Error');
             }
         } finally {
             setLoading(false);
@@ -155,11 +193,12 @@ function EmployeeRegistration() {
         try {
             setLoading(true);
             await axios.delete(`${BASE_URL}/api/employees/${id}`);
+            setSuccess('Employee deleted successfully!');
             setDeleteConfirm(null);
             fetchEmployees();
         } catch (error) {
             console.error('Error deleting employee:', error);
-            setError('Failed to delete employee');
+            setError(`Failed to delete employee: ${error.response?.data?.error || error.message}`);
         } finally {
             setLoading(false);
         }
@@ -168,12 +207,12 @@ function EmployeeRegistration() {
     const handleUpdate = (employee) => {
         setFormData({
             id: employee.id,
-            firstName: employee.firstName || '',
-            lastName: employee.lastName || '',
-            address: employee.address || '',
-            phoneNumber: employee.phoneNumber || '',
-            email: employee.email || '',
-            jobTitle: employee.jobTitle || 'Employee',
+            firstName: employee.firstName,
+            lastName: employee.lastName,
+            address: employee.address,
+            phoneNumber: employee.phoneNumber,
+            email: employee.email,
+            jobTitle: employee.jobTitle,
             salary: employee.salary || '',
             hireDate: employee.hireDate || '',
             password: '',
@@ -211,6 +250,18 @@ function EmployeeRegistration() {
         setDeleteConfirm(null);
     };
 
+    const formatDate = (date) => {
+        if (!date || date === 'N/A') return 'N/A';
+        return typeof date === 'string' ? date.split('T')[0] : date.toString().split('T')[0];
+    };
+
+    const formatCurrency = (value) => {
+        if (value === null || value === undefined || isNaN(value)) {
+            return '0.00';
+        }
+        return Number(value).toFixed(2);
+    };
+
     return (
         <>
             <OwnerNavbar />
@@ -228,11 +279,16 @@ function EmployeeRegistration() {
                     Add Employee
                 </Button>
 
-                {error && (
-                    <Typography color="error" sx={{ mb: 2 }}>
+                <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
                         {error}
-                    </Typography>
-                )}
+                    </Alert>
+                </Snackbar>
+                <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                        {success}
+                    </Alert>
+                </Snackbar>
 
                 {loading && !open ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
@@ -269,7 +325,7 @@ function EmployeeRegistration() {
                                             <TableCell>{emp.phoneNumber}</TableCell>
                                             <TableCell>{emp.jobTitle}</TableCell>
                                             <TableCell>{formatCurrency(emp.salary)}</TableCell>
-                                            <TableCell>{emp.hireDate}</TableCell>
+                                            <TableCell>{formatDate(emp.hireDate)}</TableCell>
                                             <TableCell>
                                                 <Button
                                                     onClick={() => handleUpdate(emp)}
