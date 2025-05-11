@@ -281,36 +281,91 @@ const SalesManagement = () => {
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4, bgcolor: '#f3f4f6', minHeight: '100vh' }}>
-                <Typography variant="h4" sx={{ mb: 4, color: '#1f2937', fontWeight: 'bold', textAlign: 'center' }}>
+            <Box sx={{
+                p: { xs: 2, md: 4 },
+                bgcolor: '#fff',
+                minHeight: '100vh',
+                fontFamily: 'Roboto, sans-serif'
+            }}>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        mb: 4,
+                        color: '#000000',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        letterSpacing: 0.5
+                    }}
+                >
                     Sales Management
                 </Typography>
+
                 <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{
+                        width: '100%',
+                        bgcolor: '#ff5e62',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {error}
                     </Alert>
                 </Snackbar>
                 <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
-                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{
+                        width: '100%',
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {success}
                     </Alert>
                 </Snackbar>
+
                 <Button
                     variant="contained"
                     startIcon={<Add />}
                     onClick={() => setOpenDialog(true)}
-                    sx={{ mb: 4, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                    sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        px: 3,
+                        py: 1.5,
+                        fontWeight: 500,
+                        textTransform: 'none',
+                        boxShadow: '0 2px 8px rgba(83, 209, 182, 0.2)',
+                        '&:hover': {
+                            bgcolor: '#46b69d',
+                            boxShadow: '0 4px 12px rgba(83, 209, 182, 0.3)'
+                        }
+                    }}
                 >
                     Record New Sale
                 </Button>
 
-                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center' }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 2,
+                    mb: 4,
+                    mt: 2,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
                     <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
-                        <InputLabel>Product ID</InputLabel>
+                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                            Product ID
+                        </InputLabel>
                         <Select
                             value={selectedProductId}
                             onChange={handleProductIdFilterChange}
                             label="Product ID"
+                            sx={{
+                                borderRadius: '8px',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                            }}
                         >
                             <MenuItem value="">All Product IDs</MenuItem>
                             {uniqueProductIds.map((productId, index) => (
@@ -322,11 +377,30 @@ const SalesManagement = () => {
                     </FormControl>
                 </Box>
 
-                <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-                    <DialogTitle sx={{ bgcolor: '#10b981', color: 'white', py: 2 }}>
+                <Dialog
+                    open={openDialog}
+                    onClose={() => setOpenDialog(false)}
+                    maxWidth="md"
+                    fullWidth
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        py: 2,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        borderTopLeftRadius: '12px',
+                        borderTopRightRadius: '12px'
+                    }}>
                         Record New Sale
                     </DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
+                    <DialogContent sx={{ pt: 3, bgcolor: '#fff' }}>
                         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
@@ -338,6 +412,19 @@ const SalesManagement = () => {
                                         fullWidth
                                         required
                                         variant="outlined"
+                                        autoFocus
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 {selectedProduct && (
@@ -348,6 +435,18 @@ const SalesManagement = () => {
                                                 value={selectedProduct.productName || 'N/A'}
                                                 fullWidth
                                                 disabled
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -356,6 +455,18 @@ const SalesManagement = () => {
                                                 value={selectedProduct.categoryName || 'N/A'}
                                                 fullWidth
                                                 disabled
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -364,6 +475,18 @@ const SalesManagement = () => {
                                                 value={(parseFloat(selectedProduct.sellingPrice) || 0).toFixed(2)}
                                                 fullWidth
                                                 disabled
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={12} sm={6}>
@@ -374,6 +497,18 @@ const SalesManagement = () => {
                                                     .map(([k, v]) => `${k}: ${v}`).join(', ') || 'N/A'}
                                                 fullWidth
                                                 disabled
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         {!selectedProduct.hasSizes ? (
@@ -388,6 +523,18 @@ const SalesManagement = () => {
                                                     required
                                                     variant="outlined"
                                                     inputProps={{ min: 0 }}
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: '8px',
+                                                            '& fieldset': { borderColor: '#e3e8ee' },
+                                                            '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                            '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                        },
+                                                        '& .MuiInputLabel-root': {
+                                                            color: '#000000',
+                                                            '&.Mui-focused': { color: '#6c63ff' }
+                                                        }
+                                                    }}
                                                 />
                                             </Grid>
                                         ) : (
@@ -395,11 +542,19 @@ const SalesManagement = () => {
                                                 <Grid container item xs={12} spacing={2} key={index} sx={{ mt: 1 }}>
                                                     <Grid item xs={5}>
                                                         <FormControl fullWidth>
-                                                            <InputLabel>Size</InputLabel>
+                                                            <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                                                                Size
+                                                            </InputLabel>
                                                             <Select
                                                                 value={sq.size}
                                                                 onChange={(e) => handleSizeQuantityChange(index, 'size', e.target.value)}
                                                                 required
+                                                                sx={{
+                                                                    borderRadius: '8px',
+                                                                    '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                                                    '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                                                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                                                                }}
                                                             >
                                                                 <MenuItem value="">Select Size</MenuItem>
                                                                 {selectedProduct.sizeQuantities.map(sqOpt => (
@@ -420,10 +575,25 @@ const SalesManagement = () => {
                                                             required
                                                             variant="outlined"
                                                             inputProps={{ min: 0 }}
+                                                            sx={{
+                                                                '& .MuiOutlinedInput-root': {
+                                                                    borderRadius: '8px',
+                                                                    '& fieldset': { borderColor: '#e3e8ee' },
+                                                                    '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                                    '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                                },
+                                                                '& .MuiInputLabel-root': {
+                                                                    color: '#000000',
+                                                                    '&.Mui-focused': { color: '#6c63ff' }
+                                                                }
+                                                            }}
                                                         />
                                                     </Grid>
                                                     <Grid item xs={2}>
-                                                        <IconButton onClick={() => handleRemoveSizeQuantity(index)} color="error">
+                                                        <IconButton onClick={() => handleRemoveSizeQuantity(index)} sx={{
+                                                            color: '#ff5e62',
+                                                            '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' }
+                                                        }}>
                                                             <Remove />
                                                         </IconButton>
                                                     </Grid>
@@ -432,7 +602,20 @@ const SalesManagement = () => {
                                         )}
                                         {selectedProduct.hasSizes && (
                                             <Grid item xs={12}>
-                                                <Button startIcon={<Add />} onClick={handleAddSizeQuantity} sx={{ mt: 1 }}>
+                                                <Button startIcon={<Add />} onClick={handleAddSizeQuantity} sx={{
+                                                    mt: 1,
+                                                    bgcolor: '#4ecdc4',
+                                                    color: '#fff',
+                                                    borderRadius: '8px',
+                                                    px: 3,
+                                                    py: 1,
+                                                    fontWeight: 500,
+                                                    textTransform: 'none',
+                                                    '&:hover': {
+                                                        bgcolor: '#45b7aa',
+                                                        boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                                    }
+                                                }}>
                                                     Add Size/Quantity
                                                 </Button>
                                             </Grid>
@@ -447,31 +630,89 @@ const SalesManagement = () => {
                                                 fullWidth
                                                 variant="outlined"
                                                 inputProps={{ min: 0 }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                     </>
                                 )}
                             </Grid>
-                            {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+                            {error && <Typography color="#ff5e62" sx={{ mt: 2, fontWeight: 500 }}>{error}</Typography>}
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => setOpenDialog(false)} variant="outlined">Cancel</Button>
+                    <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                        <Button
+                            onClick={() => setOpenDialog(false)}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
                         <Button
                             type="submit"
                             variant="contained"
                             onClick={handleSubmit}
                             disabled={loading}
-                            sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                            sx={{
+                                bgcolor: '#53d1b6',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#46b69d',
+                                    boxShadow: '0 2px 8px rgba(83, 209, 182, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
-                            {loading ? <CircularProgress size={24} /> : 'Record Sale'}
+                            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Record Sale'}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
                 {invoice && (
-                    <Dialog open={!!invoice} onClose={handleCancelInvoice} maxWidth="sm" fullWidth>
-                        <DialogTitle sx={{ bgcolor: '#3b82f6', color: 'white', py: 2 }}>
+                    <Dialog open={!!invoice} onClose={handleCancelInvoice} maxWidth="sm" fullWidth sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}>
+                        <DialogTitle sx={{
+                            bgcolor: '#3b82f6',
+                            color: '#fff',
+                            py: 2,
+                            fontWeight: 600,
+                            letterSpacing: 0.5,
+                            borderTopLeftRadius: '12px',
+                            borderTopRightRadius: '12px'
+                        }}>
                             Invoice
                         </DialogTitle>
                         <DialogContent sx={{ pt: 2 }}>
@@ -495,12 +736,37 @@ const SalesManagement = () => {
                                 </Box>
                             </Box>
                         </DialogContent>
-                        <DialogActions sx={{ p: 2 }}>
-                            <Button onClick={handleCancelInvoice} variant="outlined">Cancel</Button>
+                        <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                            <Button onClick={handleCancelInvoice} variant="outlined" sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}>
+                                Cancel
+                            </Button>
                             <Button
                                 variant="contained"
                                 onClick={handlePrintInvoice}
-                                sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
+                                sx={{
+                                    bgcolor: '#3b82f6',
+                                    color: '#fff',
+                                    borderRadius: '8px',
+                                    px: 3,
+                                    py: 1,
+                                    fontWeight: 500,
+                                    textTransform: 'none',
+                                    '&:hover': {
+                                        bgcolor: '#2563eb',
+                                        boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)'
+                                    }
+                                }}
                             >
                                 Print Invoice
                             </Button>
@@ -508,21 +774,136 @@ const SalesManagement = () => {
                     </Dialog>
                 )}
 
-                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px', maxHeight: '600px', overflowY: 'auto', position: 'relative' }}>
+                <TableContainer
+                    component={Paper}
+                    sx={{
+                        mt: 4,
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
+                        maxHeight: '600px',
+                        overflowY: 'auto',
+                        bgcolor: '#fff',
+                        '& .MuiTableHead-root': {
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                            backgroundColor: '#4ecdc4',
+                        },
+                    }}
+                >
                     <Table stickyHeader>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#3b82f6', position: 'sticky', top: 0, zIndex: 1 }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sales ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Image</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sale Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Category</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Subcategories</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Quantity</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Unit Selling Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Discount</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Selling Price</TableCell>
+                            <TableRow>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Sales ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Product ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Product Name
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Image
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Sale Date
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Category
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Subcategories
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Quantity
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Unit Selling Price
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Discount
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Selling Price
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -546,83 +927,123 @@ const SalesManagement = () => {
                                         displayQuantity = displayQuantity.toString();
                                     }
                                     return (
-                                        <TableRow key={sale.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
-                                            <TableCell>{sale.id || 'N/A'}</TableCell>
-                                            <TableCell>{sale.productId || 'N/A'}</TableCell>
-                                            <TableCell>{sale.productName || 'N/A'}</TableCell>
-                                            <TableCell>
-                                                {sale.image ? (
-                                                    <img src={`data:image/jpeg;base64,${sale.image}`} alt="Product" style={{ width: '50px' }} />
-                                                ) : 'N/A'}
+                                        <TableRow
+                                            key={sale.id}
+                                            sx={{
+                                                bgcolor: '#fff',
+                                                '&:hover': { bgcolor: 'rgba(108, 99, 255, 0.05)' }
+                                            }}
+                                        >
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {sale.id || 'N/A'}
                                             </TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {sale.productId || 'N/A'}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {sale.productName || 'N/A'}
+                                            </TableCell>
+                                            <TableCell sx={{ py: 2, px: 3 }}>
+                                                {sale.image ? (
+                                                    <Box
+                                                        sx={{
+                                                            cursor: 'pointer',
+                                                            display: 'inline-block',
+                                                            maxWidth: '100px',
+                                                            maxHeight: '100px',
+                                                            overflow: 'hidden',
+                                                            borderRadius: '6px',
+                                                            boxShadow: '0 2px 8px rgba(39, 68, 114, 0.08)',
+                                                            transition: 'transform 0.2s ease-in-out',
+                                                            '&:hover': { transform: 'scale(1.05)' }
+                                                        }}
+                                                        onClick={() => handleImagePreview(`data:image/jpeg;base64,${sale.image}`)}
+                                                    >
+                                                        <img
+                                                            src={`data:image/jpeg;base64,${sale.image}`}
+                                                            alt="Product"
+                                                            style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '6px' }}
+                                                        />
+                                                    </Box>
+                                                ) : (
+                                                    <Typography variant="body2" color="#000000">N/A</Typography>
+                                                )}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                                 {sale.saleDate ? new Date(sale.saleDate).toLocaleDateString('en-US', {
                                                     year: 'numeric',
                                                     month: '2-digit',
                                                     day: '2-digit',
                                                 }) : 'N/A'}
                                             </TableCell>
-                                            <TableCell>{sale.category || 'N/A'}</TableCell>
-                                            <TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {sale.category || 'N/A'}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                                 {sale.subcategories && Object.keys(sale.subcategories).length > 0
                                                     ? Object.entries(sale.subcategories)
                                                         .filter(([_, v]) => v && v.trim() !== '')
                                                         .map(([k, v]) => `${k}: ${v}`)
                                                         .join(', ')
-                                                    : 'N/A'}
+                                                    : <Typography variant="body2" color="#000000">N/A</Typography>}
                                             </TableCell>
-                                            <TableCell>{displayQuantity || 'N/A'}</TableCell>
-                                            <TableCell>{(parseFloat(sale.sellingPrice) || 0).toFixed(2)}</TableCell>
-                                            <TableCell>{(parseFloat(sale.discount) || 0).toFixed(2)}</TableCell>
-                                            <TableCell>{calculateSaleTotalSellingPrice(sale).toFixed(2)}</TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {displayQuantity || 'N/A'}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {(parseFloat(sale.sellingPrice) || 0).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {(parseFloat(sale.discount) || 0).toFixed(2)}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {calculateSaleTotalSellingPrice(sale).toFixed(2)}
+                                            </TableCell>
                                         </TableRow>
                                     );
                                 })
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={11} sx={{ textAlign: 'center', py: 2 }}>
-                                        No sales records available.
+                                    <TableCell colSpan={11} align="center">
+                                        <Typography variant="body2" color="#000000" sx={{ py: 4 }}>
+                                            No sales records available.
+                                        </Typography>
                                     </TableCell>
                                 </TableRow>
                             )}
                         </TableBody>
                     </Table>
                 </TableContainer>
-
-                <style>
-                    {`
-                        .MuiTableHead-root {
-                            position: sticky;
-                            top: 0;
-                            z-index: 1;
-                            background-color: #3b82f6;
-                        }
-
-                        .MuiTableCell-head {
-                            color: white;
-                            font-weight: bold;
-                            border-bottom: 2px solid #1565c0;
-                            background-color: #3b82f6;
-                        }
-
-                        .MuiTableContainer-root {
-                            position: relative;
-                            max-height: 600px;
-                            overflow-y: auto;
-                        }
-
-                        .MuiTableRow-root:hover {
-                            background-color: #f9fafb;
-                        }
-
-                        .MuiTableCell-body {
-                            padding: 12px 16px;
-                            border-bottom: 1px solid #e0e0e0;
-                            color: #333;
-                        }
-                    `}
-                </style>
             </Box>
+            <style>
+                {`
+                    body {
+                        font-family: 'Roboto', sans-serif;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .filter-section, .MuiTabs-root {
+                            display: none;
+                        }
+                        .table-container {
+                            box-shadow: none;
+                            max-height: none;
+                            overflow-y: visible;
+                        }
+                        .table {
+                            page-break-inside: auto;
+                        }
+                        .table tr {
+                            page-break-inside: avoid;
+                            page-break-after: auto;
+                        }
+                    }
+                `}
+            </style>
         </>
     );
 };

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, Box, Grid, Card, CardContent } from '@mui/material';
+import {
+    Box, Grid, Card, Typography, Container, Avatar
+} from '@mui/material';
 import { Pie, Bar, Line } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -13,11 +15,33 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import OwnerNavbar from '../components/OwnerNavbar';
+import StorefrontIcon from '@mui/icons-material/Storefront';
+import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
+import Inventory2Icon from '@mui/icons-material/Inventory2';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import GroupIcon from '@mui/icons-material/Group';
 import axios from 'axios';
-import './styles.css';
+import OwnerNavbar from '../components/OwnerNavbar';
 
-// Register Chart.js components
+// Modern pastel palette with accent colors
+const palette = {
+    gradient: "#fff", // Set to white
+    card: "#fff",
+    cardAlt: "#f4f8fb",
+    accent: "#6c63ff",
+    accent2: "#ffb86c",
+    accent3: "#53d1b6",
+    accentDanger: "#ff5e62",
+    heading: "#1a2639",
+    textMain: "#2d3748",
+    textSecondary: "#6b7280",
+    border: "#e3e8ee",
+    shadow: "0 4px 24px 0 rgba(39, 68, 114, 0.08)",
+    chartBlue: "#7fa7c9",
+    chartPurple: "#6c63ff",
+    chartTeal: "#53d1b6",
+};
+
 ChartJS.register(
     ArcElement,
     BarElement,
@@ -44,34 +68,17 @@ function OwnerDashboard() {
 
     useEffect(() => {
         let isMounted = true;
-
         const fetchAndSetData = async () => {
             try {
                 const [productsRes, salesRes, usersRes] = await Promise.all([
                     axios.get('http://localhost:8080/api/products'),
                     axios.get('http://localhost:8080/api/sales'),
-                    axios.get('http://localhost:8080/api/employees'), // Fetch users
+                    axios.get('http://localhost:8080/api/employees'),
                 ]);
-
                 if (!isMounted) return;
-
-                // Process products data
                 const products = Array.isArray(productsRes.data) ? productsRes.data : (productsRes.data.data || []);
                 const sales = Array.isArray(salesRes.data) ? salesRes.data : (salesRes.data.data || []);
                 const users = Array.isArray(usersRes.data) ? usersRes.data : [];
-
-                if (!products || !Array.isArray(products)) {
-                    console.error("Products data is not an array:", products);
-                    return;
-                }
-                if (!sales || !Array.isArray(sales)) {
-                    console.error("Sales data is not an array:", sales);
-                    return;
-                }
-                if (!users || !Array.isArray(users)) {
-                    console.error("Users data is not an array:", users);
-                    return;
-                }
 
                 const totalProducts = products.length;
                 const totalSales = sales.length;
@@ -86,7 +93,6 @@ function OwnerDashboard() {
                 ).length;
                 setOverviewData({ totalProducts, totalSales, totalStock, outOfStock });
 
-                // Calculate total sold products by summing both sizeQuantities and quantity
                 const soldProducts = sales.reduce((sum, s) => {
                     if (s.sizeQuantities && Object.keys(s.sizeQuantities).length > 0) {
                         return sum + Object.values(s.sizeQuantities).reduce((total, qty) => total + (parseInt(qty) || 0), 0);
@@ -139,7 +145,6 @@ function OwnerDashboard() {
                 const profitDataValues = profitLabels.map(date => monthlyProfit[date] || 0);
                 setProfitData({ labels: profitLabels, data: profitDataValues });
 
-                // Count total owners and employees
                 const totalOwners = users.filter(user => user.role === 'OWNER').length;
                 const totalEmployees = users.filter(user => user.role === 'EMPLOYEE').length;
                 setUserData({ totalOwners, totalEmployees });
@@ -157,6 +162,7 @@ function OwnerDashboard() {
         };
     }, []);
 
+    // Chart Data
     const inventoryChartData = {
         labels: ['Sold Products', 'Available Products'],
         datasets: [
@@ -165,7 +171,9 @@ function OwnerDashboard() {
                     inventoryData.soldProducts || 0,
                     inventoryData.totalProducts || 0
                 ],
-                backgroundColor: ['#36A2EB', '#FF6384'],
+                backgroundColor: [palette.accent2, palette.chartTeal],
+                borderWidth: 2,
+                borderColor: palette.card,
             },
         ],
     };
@@ -176,7 +184,9 @@ function OwnerDashboard() {
             {
                 label: 'Sold Percentage (%)',
                 data: topProductsData.percentages,
-                backgroundColor: '#36A2EB',
+                backgroundColor: palette.chartPurple,
+                borderRadius: 10,
+                borderSkipped: false,
             },
         ],
     };
@@ -187,125 +197,227 @@ function OwnerDashboard() {
             {
                 label: 'Profit',
                 data: profitData.data,
-                borderColor: '#FF6384',
-                fill: false,
+                borderColor: palette.accent,
+                backgroundColor: palette.accent + '22',
+                tension: 0.4,
+                pointBackgroundColor: palette.accent,
+                fill: true,
             },
         ],
+    };
+
+    // Card styles
+    const cardStyle = {
+        borderRadius: 18,
+        boxShadow: palette.shadow,
+        background: palette.card,
+        border: `1px solid ${palette.border}`,
+        p: 3,
+        minWidth: 180,
+        textAlign: 'center',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
     };
 
     return (
         <>
             <OwnerNavbar />
-            <Container maxWidth="lg" sx={{ py: 4, background: '#e3f2fd', minHeight: '100vh' }}>
-                <Box sx={{ bgcolor: '#fff', p: 3, borderRadius: 1, boxShadow: 2 }}>
-                    <Box sx={{ mb: 4 }}>
-                        <Typography variant="h5" sx={{ fontWeight: 'bold', mb: 2 }}>
-                            Overview
-                        </Typography>
-                        <Grid container spacing={2}>
-                            <Grid item>
-                                <Card sx={{ bgcolor: '#e8f5e9', p: 2, borderRadius: 1, width: 150, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
+            <Box sx={{ minHeight: '100vh', background: "#fff" }}>
+                <Box sx={{
+                    px: { xs: 1, md: 5 },
+                    py: { xs: 2, md: 4 },
+                    minHeight: '100vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'stretch',
+                }}>
+                    <Container maxWidth="xl" disableGutters>
+                        {/* Header */}
+                        <Box sx={{
+                            mb: 4,
+                            display: 'flex',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 2,
+                        }}>
+                            <Box sx={{ flex: 1 }}>
+                                <Typography variant="h4" sx={{
+                                    fontWeight: 800,
+                                    color: palette.heading,
+                                    letterSpacing: 1,
+                                    mb: 0.5,
+                                    textAlign: 'left'
+                                }}>
+                                    Owner Dashboard
+                                </Typography>
+                                <Typography variant="subtitle1" sx={{ color: palette.textSecondary, textAlign: 'left' }}>
+                                    Here’s an overview of your business performance.
+                                </Typography>
+                            </Box>
+                            <Avatar sx={{
+                                bgcolor: palette.accent,
+                                width: 56,
+                                height: 56,
+                                fontWeight: 700,
+                                fontSize: 28,
+                                boxShadow: palette.shadow
+                            }}>
+                                O
+                            </Avatar>
+                        </Box>
+
+                        {/* Overview Cards */}
+                        <Grid container spacing={3} sx={{ mb: 4 }} justifyContent="center" alignItems="center">
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Card sx={{ ...cardStyle, borderTop: `6px solid ${palette.accent}` }}>
+                                    <StorefrontIcon sx={{ color: palette.accent, mb: 1, fontSize: 32 }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: palette.textSecondary }}>
                                         Total Products
                                     </Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 900, color: palette.textMain }}>
                                         {overviewData.totalProducts}
                                     </Typography>
                                 </Card>
                             </Grid>
-                            <Grid item>
-                                <Card sx={{ bgcolor: '#e0f7fa', p: 2, borderRadius: 1, width: 150, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Card sx={{ ...cardStyle, borderTop: `6px solid ${palette.accent2}` }}>
+                                    <ShoppingCartIcon sx={{ color: palette.accent2, mb: 1, fontSize: 32 }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: palette.textSecondary }}>
                                         Total Sales
                                     </Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 900, color: palette.textMain }}>
                                         {overviewData.totalSales}
                                     </Typography>
                                 </Card>
                             </Grid>
-                            <Grid item>
-                                <Card sx={{ bgcolor: '#fff3e0', p: 2, borderRadius: 1, width: 150, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Card sx={{ ...cardStyle, borderTop: `6px solid ${palette.accent3}` }}>
+                                    <Inventory2Icon sx={{ color: palette.accent3, mb: 1, fontSize: 32 }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: palette.textSecondary }}>
                                         Total Stock
                                     </Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 900, color: palette.textMain }}>
                                         {overviewData.totalStock}
                                     </Typography>
                                 </Card>
                             </Grid>
-                            <Grid item>
-                                <Card sx={{ bgcolor: '#ffebee', p: 2, borderRadius: 1, width: 150, textAlign: 'center' }}>
-                                    <Typography variant="body2" color="text.secondary">
+                            <Grid item xs={12} sm={6} md={3}>
+                                <Card sx={{ ...cardStyle, borderTop: `6px solid ${palette.accentDanger}` }}>
+                                    <WarningAmberIcon sx={{ color: palette.accentDanger, mb: 1, fontSize: 32 }} />
+                                    <Typography variant="body2" sx={{ fontWeight: 700, color: palette.textSecondary }}>
                                         Out of Stock
                                     </Typography>
-                                    <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                    <Typography variant="h5" sx={{ fontWeight: 900, color: palette.textMain }}>
                                         {overviewData.outOfStock}
                                     </Typography>
                                 </Card>
                             </Grid>
                         </Grid>
-                    </Box>
 
-                    <Grid container spacing={3}>
-                        <Grid item xs={4}>
-                            <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1, height: '100%' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    Number of Users
-                                </Typography>
-                                <Typography variant="body1">
-                                    Total Owners: {userData.totalOwners}
-                                </Typography>
-                                <Typography variant="body1">
-                                    Total Employees: {userData.totalEmployees}
-                                </Typography>
-                            </Card>
+                        {/* Charts & User Info */}
+                        <Grid container spacing={3} alignItems="stretch" sx={{ mb: 4 }} justifyContent="center">
+                            <Grid item xs={12} md={4}>
+                                <Card sx={{ ...cardStyle, alignItems: 'flex-start' }}>
+                                    <GroupIcon sx={{ color: palette.accent, mb: 1, fontSize: 28 }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: palette.textSecondary }}>
+                                        Users
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        <Typography variant="body1" sx={{ color: palette.textMain }}>
+                                            Owners: <b>{userData.totalOwners}</b>
+                                        </Typography>
+                                        <Typography variant="body1" sx={{ color: palette.textSecondary }}>
+                                            Employees: <b>{userData.totalEmployees}</b>
+                                        </Typography>
+                                    </Box>
+                                </Card>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Card sx={{ ...cardStyle }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: palette.textSecondary }}>
+                                        Inventory
+                                    </Typography>
+                                    <Box sx={{ height: 160, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <Pie
+                                            data={inventoryChartData}
+                                            options={{
+                                                responsive: true,
+                                                plugins: {
+                                                    legend: {
+                                                        display: true,
+                                                        position: 'bottom',
+                                                        labels: { color: palette.textMain }
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                </Card>
+                            </Grid>
+                            <Grid item xs={12} md={4}>
+                                <Card sx={{ ...cardStyle }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: palette.textSecondary }}>
+                                        Profit Trend
+                                    </Typography>
+                                    <Box sx={{ height: 160, width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                                        <Line
+                                            data={profitChartData}
+                                            options={{
+                                                responsive: true,
+                                                plugins: { legend: { display: false } },
+                                                scales: {
+                                                    y: {
+                                                        title: { display: true, text: 'Profit', color: palette.textSecondary },
+                                                        ticks: { color: palette.textMain }
+                                                    },
+                                                    x: {
+                                                        title: { display: true, text: 'Month', color: palette.textSecondary },
+                                                        ticks: { color: palette.textMain }
+                                                    },
+                                                },
+                                            }}
+                                        />
+                                    </Box>
+                                </Card>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={4}>
-                            <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1, height: '100%' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    Inventory Values
-                                </Typography>
-                                <Box sx={{ height: 200 }}>
-                                    <Pie data={inventoryChartData} options={{ responsive: true, maintainAspectRatio: false }} />
-                                </Box>
-                            </Card>
+
+                        {/* Top Products */}
+                        <Grid container justifyContent="center">
+                            <Grid item xs={12} md={10} lg={8}>
+                                <Card sx={{ ...cardStyle, mt: 2, width: '100%', alignItems: 'flex-start' }}>
+                                    <Typography variant="h6" sx={{ fontWeight: 700, mb: 2, color: palette.textSecondary }}>
+                                        Top 10 Most Sold Products
+                                    </Typography>
+                                    <Box sx={{ height: 320, width: '100%' }}>
+                                        <Bar
+                                            data={topProductsChartData}
+                                            options={{
+                                                responsive: true,
+                                                plugins: { legend: { display: false } },
+                                                scales: {
+                                                    y: {
+                                                        beginAtZero: true,
+                                                        max: 100,
+                                                        title: { display: true, text: 'Sold Percentage (%)', color: palette.textSecondary },
+                                                        ticks: { callback: value => `${value}%`, color: palette.textMain }
+                                                    },
+                                                    x: {
+                                                        title: { display: true, text: 'Product', color: palette.textSecondary },
+                                                        ticks: { color: palette.textMain }
+                                                    },
+                                                },
+                                            }}
+                                        />
+                                    </Box>
+                                </Card>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={4}>
-                            <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1, height: '100%' }}>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    Expense vs Profit
-                                </Typography>
-                                <Box sx={{ height: 200 }}>
-                                    <Line
-                                        data={profitChartData}
-                                        options={{ responsive: true, maintainAspectRatio: false, scales: { y: { title: { display: true, text: 'Profit' } }, x: { title: { display: true, text: 'Month' } } } }}
-                                    />
-                                </Box>
-                            </Card>
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Card sx={{ p: 2, borderRadius: 1, boxShadow: 1 }}>
-                                <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    Top 10 Most Sold Products (by Percentage)
-                                </Typography>
-                                <Box sx={{ height: 300 }}>
-                                    <Bar
-                                        data={topProductsChartData}
-                                        options={{
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            scales: {
-                                                y: { beginAtZero: true, max: 100, title: { display: true, text: 'Sold Percentage (%)' }, ticks: { callback: value => `${value}%` } },
-                                                x: { title: { display: true, text: 'Product Name' } },
-                                            },
-                                        }}
-                                    />
-                                </Box>
-                            </Card>
-                        </Grid>
-                    </Grid>
+                    </Container>
                 </Box>
-            </Container>
+            </Box>
         </>
     );
 }

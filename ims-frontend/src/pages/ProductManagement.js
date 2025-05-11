@@ -11,7 +11,7 @@ import OwnerNavbar from '../components/OwnerNavbar';
 const ProductManagement = () => {
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
-    const [filterProductId, setFilterProductId] = useState(''); // New state for Product ID filter
+    const [filterProductId, setFilterProductId] = useState('');
     const [formData, setFormData] = useState({
         productName: '',
         categoryId: '',
@@ -191,14 +191,12 @@ const ProductManagement = () => {
             payload.append('hasSizes', formData.hasSizes);
             if (formData.image) payload.append('image', formData.image);
 
-            // Append subcategories
             Object.entries(formData.subcategories).forEach(([key, value]) => {
                 if (value) {
                     payload.append(key.toLowerCase(), value);
                 }
             });
 
-            // Handle sizes and quantities
             if (formData.hasSizes) {
                 const validSizeQuantities = formData.sizeQuantities.filter(sq => sq.size && sq.quantity);
                 validSizeQuantities.forEach(sq => {
@@ -209,7 +207,7 @@ const ProductManagement = () => {
                 payload.append('quantity', formData.quantity || 0);
             }
 
-            console.log('FormData payload:', Object.fromEntries(payload)); // Debug payload
+            console.log('FormData payload:', Object.fromEntries(payload));
             const url = editId ? `http://localhost:8080/api/products/${editId}` : 'http://localhost:8080/api/products';
             const method = editId ? 'put' : 'post';
 
@@ -341,13 +339,12 @@ const ProductManagement = () => {
         } else if (!hasSizes && quantity !== null && quantity !== undefined) {
             return <div>• Quantity: {quantity}</div>;
         }
-        return <Typography variant="body2" color="text.secondary">N/A</Typography>;
+        return <Typography variant="body2" color="#000000">N/A</Typography>;
     };
 
     const selectedCategory = categories.find(c => c.id === parseInt(formData.categoryId));
     const allowedSubcats = selectedCategory ? selectedCategory.allowedSubcategories || [] : [];
 
-    // Filter products by Product ID
     const filteredProducts = filterProductId
         ? products.filter(product =>
             product.productId?.toString().includes(filterProductId)
@@ -357,85 +354,217 @@ const ProductManagement = () => {
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4, bgcolor: '#f3f4f6', minHeight: '100vh' }}>
-                <Typography variant="h4" sx={{ mb: 4, color: '#1f2937', fontWeight: 'bold', textAlign: 'center' }}>
+            <Box sx={{
+                p: { xs: 2, md: 4 },
+                bgcolor: '#fff',
+                minHeight: '100vh',
+                fontFamily: 'Roboto, sans-serif'
+            }}>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        mb: 4,
+                        color: '#000000',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        letterSpacing: 0.5
+                    }}
+                >
                     Inventory Management
                 </Typography>
+
                 <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{
+                        width: '100%',
+                        bgcolor: '#ff5e62',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {error}
                     </Alert>
                 </Snackbar>
                 <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
-                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{
+                        width: '100%',
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {success}
                     </Alert>
                 </Snackbar>
-                <Grid container spacing={3}>
-                    <Grid item xs={12} md={6}>
-                        <Card sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
+
+                <Grid container spacing={3} sx={{ mb: 4 }}>
+                    <Grid item xs={12} sm={6}>
+                        <Card sx={{
+                            bgcolor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
+                            transition: 'transform 0.2s ease-in-out',
+                            '&:hover': { transform: 'translateY(-4px)' }
+                        }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ mb: 2, color: '#1f2937' }}>Add New Category</Typography>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        mb: 2,
+                                        color: '#000000',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Add New Category
+                                </Typography>
                                 <Button
                                     variant="contained"
                                     startIcon={<Add />}
                                     onClick={() => setOpenCategoryDialog(true)}
-                                    sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
+                                    sx={{
+                                        bgcolor: '#4ecdc4',
+                                        color: '#fff',
+                                        borderRadius: '8px',
+                                        px: 3,
+                                        py: 1.5,
+                                        fontWeight: 500,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            bgcolor: '#45b7aa',
+                                            boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                        }
+                                    }}
                                 >
                                     Add Category
                                 </Button>
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12} md={6}>
-                        <Card sx={{ boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
+                    <Grid item xs={12} sm={6}>
+                        <Card sx={{
+                            bgcolor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
+                            transition: 'transform 0.2s ease-in-out',
+                            '&:hover': { transform: 'translateY(-4px)' }
+                        }}>
                             <CardContent>
-                                <Typography variant="h6" sx={{ mb: 2, color: '#1f2937' }}>Add Subcategories to Existing Category</Typography>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        mb: 2,
+                                        color: '#000000',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    Add Subcategories
+                                </Typography>
                                 <Button
                                     variant="contained"
                                     startIcon={<Add />}
                                     onClick={() => setOpenAddSubcategoryDialog(true)}
-                                    sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
+                                    sx={{
+                                        bgcolor: '#4ecdc4',
+                                        color: '#fff',
+                                        borderRadius: '8px',
+                                        px: 3,
+                                        py: 1.5,
+                                        fontWeight: 500,
+                                        textTransform: 'none',
+                                        '&:hover': {
+                                            bgcolor: '#45b7aa',
+                                            boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                        }
+                                    }}
                                 >
                                     Add Subcategories
                                 </Button>
                             </CardContent>
                         </Card>
                     </Grid>
-                    <Grid item xs={12}>
-                        <Box sx={{ display: 'flex', gap: 2, mb: 4, alignItems: 'center' }}>
-                            <Button
-                                variant="contained"
-                                startIcon={<Add />}
-                                onClick={() => {
-                                    resetFormData();
-                                    setEditId(null);
-                                    setOpenDialog(true);
-                                }}
-                                sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
-                            >
-                                Add Product
-                            </Button>
-                            <TextField
-                                label="Filter by Product ID"
-                                value={filterProductId}
-                                onChange={(e) => setFilterProductId(e.target.value)}
-                                sx={{ width: '250px' }}
-                                variant="outlined"
-                            />
-                        </Box>
-                    </Grid>
                 </Grid>
 
-                <Dialog open={openDialog} onClose={() => {
-                    setOpenDialog(false);
-                    resetFormData();
-                    setEditId(null);
-                }} maxWidth="md" fullWidth>
-                    <DialogTitle sx={{ bgcolor: '#10b981', color: 'white', py: 2 }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 2,
+                    mb: 4,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <Button
+                        variant="contained"
+                        startIcon={<Add />}
+                        onClick={() => {
+                            resetFormData();
+                            setEditId(null);
+                            setOpenDialog(true);
+                        }}
+                        sx={{
+                            bgcolor: '#53d1b6',
+                            color: '#fff',
+                            borderRadius: '8px',
+                            px: 3,
+                            py: 1.5,
+                            fontWeight: 500,
+                            textTransform: 'none',
+                            boxShadow: '0 2px 8px rgba(83, 209, 182, 0.2)',
+                            '&:hover': {
+                                bgcolor: '#46b69d',
+                                boxShadow: '0 4px 12px rgba(83, 209, 182, 0.3)'
+                            }
+                        }}
+                    >
+                        Add Product
+                    </Button>
+                    <TextField
+                        label="Filter by Product ID"
+                        value={filterProductId}
+                        onChange={(e) => setFilterProductId(e.target.value)}
+                        sx={{
+                            width: { xs: '100%', sm: '250px' },
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '8px',
+                                bgcolor: '#fff',
+                                '& fieldset': { borderColor: '#e3e8ee' },
+                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                            },
+                            '& .MuiInputLabel-root': {
+                                color: '#000000',
+                                '&.Mui-focused': { color: '#6c63ff' }
+                            }
+                        }}
+                        variant="outlined"
+                        size="small"
+                    />
+                </Box>
+
+                <Dialog
+                    open={openDialog}
+                    onClose={() => {
+                        setOpenDialog(false);
+                        resetFormData();
+                        setEditId(null);
+                    }}
+                    maxWidth="md"
+                    fullWidth
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        py: 2,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        borderTopLeftRadius: '12px',
+                        borderTopRightRadius: '12px'
+                    }}>
                         {editId ? 'Edit Product' : 'Add Product'}
                     </DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
+                    <DialogContent sx={{ pt: 3, bgcolor: '#fff' }}>
                         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12} sm={6}>
@@ -447,32 +576,63 @@ const ProductManagement = () => {
                                         fullWidth
                                         required
                                         variant="outlined"
+                                        autoFocus
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <FormControl fullWidth>
-                                        <InputLabel>Category</InputLabel>
+                                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                                            Category
+                                        </InputLabel>
                                         <Select
                                             name="categoryId"
                                             value={formData.categoryId}
                                             onChange={handleInputChange}
                                             required
+                                            sx={{
+                                                borderRadius: '8px',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                                            }}
                                         >
                                             <MenuItem value="">Select Category</MenuItem>
                                             {categories.map(category => (
-                                                <MenuItem key={category.id} value={category.id}>{category.categoryName}</MenuItem>
+                                                <MenuItem key={category.id} value={category.id}>
+                                                    {category.categoryName}
+                                                </MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     <FormControl fullWidth>
-                                        <InputLabel>Has Sizes?</InputLabel>
+                                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                                            Has Sizes?
+                                        </InputLabel>
                                         <Select
                                             name="hasSizes"
                                             value={formData.hasSizes ? 'yes' : 'no'}
                                             onChange={handleInputChange}
                                             required
+                                            sx={{
+                                                borderRadius: '8px',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                                            }}
                                         >
                                             <MenuItem value="yes">Yes</MenuItem>
                                             <MenuItem value="no">No</MenuItem>
@@ -490,6 +650,18 @@ const ProductManagement = () => {
                                                     fullWidth
                                                     required
                                                     variant="outlined"
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: '8px',
+                                                            '& fieldset': { borderColor: '#e3e8ee' },
+                                                            '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                            '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                        },
+                                                        '& .MuiInputLabel-root': {
+                                                            color: '#000000',
+                                                            '&.Mui-focused': { color: '#6c63ff' }
+                                                        }
+                                                    }}
                                                 />
                                             </Grid>
                                             <Grid item xs={5}>
@@ -501,10 +673,28 @@ const ProductManagement = () => {
                                                     fullWidth
                                                     required
                                                     variant="outlined"
+                                                    sx={{
+                                                        '& .MuiOutlinedInput-root': {
+                                                            borderRadius: '8px',
+                                                            '& fieldset': { borderColor: '#e3e8ee' },
+                                                            '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                            '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                        },
+                                                        '& .MuiInputLabel-root': {
+                                                            color: '#000000',
+                                                            '&.Mui-focused': { color: '#6c63ff' }
+                                                        }
+                                                    }}
                                                 />
                                             </Grid>
                                             <Grid item xs={2}>
-                                                <IconButton onClick={() => handleRemoveSizeQuantity(index)} color="error">
+                                                <IconButton
+                                                    onClick={() => handleRemoveSizeQuantity(index)}
+                                                    sx={{
+                                                        color: '#ff5e62',
+                                                        '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' }
+                                                    }}
+                                                >
                                                     <Remove />
                                                 </IconButton>
                                             </Grid>
@@ -521,12 +711,41 @@ const ProductManagement = () => {
                                             fullWidth
                                             required
                                             variant="outlined"
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '8px',
+                                                    '& fieldset': { borderColor: '#e3e8ee' },
+                                                    '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                    '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: '#000000',
+                                                    '&.Mui-focused': { color: '#6c63ff' }
+                                                }
+                                            }}
                                         />
                                     </Grid>
                                 )}
                                 {formData.hasSizes && (
                                     <Grid item xs={12}>
-                                        <Button startIcon={<Add />} onClick={handleAddSizeQuantity} sx={{ mt: 1 }}>
+                                        <Button
+                                            startIcon={<Add />}
+                                            onClick={handleAddSizeQuantity}
+                                            sx={{
+                                                mt: 1,
+                                                bgcolor: '#4ecdc4',
+                                                color: '#fff',
+                                                borderRadius: '8px',
+                                                px: 3,
+                                                py: 1,
+                                                fontWeight: 500,
+                                                textTransform: 'none',
+                                                '&:hover': {
+                                                    bgcolor: '#45b7aa',
+                                                    boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                                }
+                                            }}
+                                        >
                                             Add Size/Quantity
                                         </Button>
                                     </Grid>
@@ -541,6 +760,18 @@ const ProductManagement = () => {
                                         fullWidth
                                         required
                                         variant="outlined"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -553,6 +784,18 @@ const ProductManagement = () => {
                                         fullWidth
                                         required
                                         variant="outlined"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -563,6 +806,18 @@ const ProductManagement = () => {
                                         onChange={handleInputChange}
                                         fullWidth
                                         variant="outlined"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
@@ -576,31 +831,68 @@ const ProductManagement = () => {
                                         required
                                         InputLabelProps={{ shrink: true }}
                                         variant="outlined"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
-                                    <input
-                                        type="file"
-                                        name="image"
-                                        accept="image/*"
-                                        onChange={handleInputChange}
-                                        style={{ marginTop: '16px' }}
-                                    />
+                                    <Button
+                                        variant="outlined"
+                                        component="label"
+                                        sx={{
+                                            mt: 2,
+                                            borderColor: '#e3e8ee',
+                                            color: '#000000',
+                                            borderRadius: '8px',
+                                            width: '100%',
+                                            py: 1,
+                                            textTransform: 'none',
+                                            bgcolor: '#a3bffa',
+                                            '&:hover': {
+                                                borderColor: '#6c63ff',
+                                                bgcolor: 'rgba(163, 191, 250, 0.8)'
+                                            }
+                                        }}
+                                    >
+                                        Upload Image
+                                        <input
+                                            type="file"
+                                            name="image"
+                                            accept="image/*"
+                                            onChange={handleInputChange}
+                                            hidden
+                                        />
+                                    </Button>
                                 </Grid>
                                 <Grid item xs={12} sm={6}>
                                     {(formData.image || (editId && formData.existingImage)) && (
                                         <Box sx={{ mt: 2 }}>
-                                            <Typography variant="subtitle1">Image Preview:</Typography>
+                                            <Typography variant="subtitle1" sx={{ color: '#000000', mb: 1 }}>
+                                                Image Preview:
+                                            </Typography>
                                             <Box
                                                 sx={{
-                                                    border: '1px solid #ccc',
+                                                    border: '1px solid #e3e8ee',
                                                     borderRadius: '8px',
                                                     padding: '8px',
                                                     cursor: 'pointer',
                                                     display: 'inline-block',
                                                     maxWidth: '150px',
                                                     maxHeight: '150px',
-                                                    overflow: 'hidden'
+                                                    overflow: 'hidden',
+                                                    boxShadow: '0 2px 8px rgba(39, 68, 114, 0.08)',
+                                                    transition: 'transform 0.2s ease-in-out',
+                                                    '&:hover': { transform: 'scale(1.05)' }
                                                 }}
                                                 onClick={() => {
                                                     const imageSrc = formData.image
@@ -616,7 +908,7 @@ const ProductManagement = () => {
                                                             : `data:image/jpeg;base64,${formData.existingImage}`
                                                     }
                                                     alt="Preview"
-                                                    style={{ width: '100%', height: 'auto', display: 'block' }}
+                                                    style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '6px' }}
                                                 />
                                             </Box>
                                         </Box>
@@ -631,35 +923,100 @@ const ProductManagement = () => {
                                             onChange={handleInputChange}
                                             fullWidth
                                             variant="outlined"
-                                            sx={{ mt: 2 }}
+                                            sx={{
+                                                mt: 2,
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '8px',
+                                                    '& fieldset': { borderColor: '#e3e8ee' },
+                                                    '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                    '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: '#000000',
+                                                    '&.Mui-focused': { color: '#6c63ff' }
+                                                }
+                                            }}
                                         />
                                     </Grid>
                                 ))}
                             </Grid>
-                            {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+                            {error && <Typography color="#ff5e62" sx={{ mt: 2, fontWeight: 500 }}>{error}</Typography>}
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => {
-                            setOpenDialog(false);
-                            resetFormData();
-                            setEditId(null);
-                        }} variant="outlined">Cancel</Button>
+                    <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                        <Button
+                            onClick={() => {
+                                setOpenDialog(false);
+                                resetFormData();
+                                setEditId(null);
+                            }}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
                         <Button
                             type="submit"
                             variant="contained"
                             onClick={handleSubmit}
                             disabled={loading}
-                            sx={{ bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                            sx={{
+                                bgcolor: '#53d1b6',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#46b69d',
+                                    boxShadow: '0 2px 8px rgba(83, 209, 182, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
-                            {loading ? <CircularProgress size={24} /> : (editId ? 'Update' : 'Add')}
+                            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : (editId ? 'Update' : 'Add')}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
-                <Dialog open={openCategoryDialog} onClose={() => setOpenCategoryDialog(false)} maxWidth="sm">
-                    <DialogTitle sx={{ bgcolor: '#3b82f6', color: 'white', py: 2 }}>Add New Category</DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
+                <Dialog
+                    open={openCategoryDialog}
+                    onClose={() => setOpenCategoryDialog(false)}
+                    maxWidth="sm"
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{
+                        bgcolor: '#6c63ff',
+                        color: '#fff',
+                        py: 2,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        borderTopLeftRadius: '12px',
+                        borderTopRightRadius: '12px'
+                    }}>
+                        Add New Category
+                    </DialogTitle>
+                    <DialogContent sx={{ pt: 3, bgcolor: '#fff' }}>
                         <Box sx={{ mt: 2 }}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
@@ -674,6 +1031,18 @@ const ProductManagement = () => {
                                         fullWidth
                                         required
                                         variant="outlined"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
                                     />
                                 </Grid>
                                 {newCategory.subcategories.map((subcat, index) => (
@@ -685,45 +1054,135 @@ const ProductManagement = () => {
                                                 onChange={(e) => handleNewCategoryChange(index, 'name', e.target.value)}
                                                 fullWidth
                                                 variant="outlined"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={2}>
-                                            <IconButton onClick={() => handleRemoveSubcategory(index)} color="error">
+                                            <IconButton
+                                                onClick={() => handleRemoveSubcategory(index)}
+                                                sx={{
+                                                    color: '#ff5e62',
+                                                    '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' }
+                                                }}
+                                            >
                                                 <Remove />
                                             </IconButton>
                                         </Grid>
                                     </Grid>
                                 ))}
                                 <Grid item xs={12}>
-                                    <Button startIcon={<Add />} onClick={handleAddSubcategory} sx={{ mt: 1 }}>
+                                    <Button
+                                        startIcon={<Add />}
+                                        onClick={handleAddSubcategory}
+                                        sx={{
+                                            mt: 1,
+                                            bgcolor: '#4ecdc4',
+                                            color: '#fff',
+                                            borderRadius: '8px',
+                                            px: 3,
+                                            py: 1,
+                                            fontWeight: 500,
+                                            textTransform: 'none',
+                                            '&:hover': {
+                                                bgcolor: '#45b7aa',
+                                                boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                            }
+                                        }}
+                                    >
                                         Add Subcategory
                                     </Button>
                                 </Grid>
                             </Grid>
-                            {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+                            {error && <Typography color="#ff5e62" sx={{ mt: 2, fontWeight: 500 }}>{error}</Typography>}
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => setOpenCategoryDialog(false)} variant="outlined">Cancel</Button>
+                    <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                        <Button
+                            onClick={() => setOpenCategoryDialog(false)}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
                         <Button
                             variant="contained"
                             onClick={handleAddCategory}
                             disabled={loading}
-                            sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
+                            sx={{
+                                bgcolor: '#6c63ff',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#5a52d5',
+                                    boxShadow: '0 2px 8px rgba(108, 99, 255, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
-                            {loading ? <CircularProgress size={24} /> : 'Add Category'}
+                            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Add Category'}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
-                <Dialog open={openAddSubcategoryDialog} onClose={() => setOpenAddSubcategoryDialog(false)} maxWidth="sm">
-                    <DialogTitle sx={{ bgcolor: '#3b82f6', color: 'white', py: 2 }}>Add Subcategories to Existing Category</DialogTitle>
-                    <DialogContent sx={{ pt: 2 }}>
+                <Dialog
+                    open={openAddSubcategoryDialog}
+                    onClose={() => setOpenAddSubcategoryDialog(false)}
+                    maxWidth="sm"
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{
+                        bgcolor: '#6c63ff',
+                        color: '#fff',
+                        py: 2,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        borderTopLeftRadius: '12px',
+                        borderTopRightRadius: '12px'
+                    }}>
+                        Add Subcategories to Existing Category
+                    </DialogTitle>
+                    <DialogContent sx={{ pt: 3, bgcolor: '#fff' }}>
                         <Box sx={{ mt: 2 }}>
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
                                     <FormControl fullWidth>
-                                        <InputLabel>Existing Category</InputLabel>
+                                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                                            Existing Category
+                                        </InputLabel>
                                         <Select
                                             name="categoryId"
                                             value={addSubcategoryData.categoryId}
@@ -732,10 +1191,18 @@ const ProductManagement = () => {
                                                 categoryId: e.target.value
                                             }))}
                                             required
+                                            sx={{
+                                                borderRadius: '8px',
+                                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                                            }}
                                         >
                                             <MenuItem value="">Select Category</MenuItem>
                                             {categories.map(category => (
-                                                <MenuItem key={category.id} value={category.id}>{category.categoryName}</MenuItem>
+                                                <MenuItem key={category.id} value={category.id}>
+                                                    {category.categoryName}
+                                                </MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
@@ -749,50 +1216,157 @@ const ProductManagement = () => {
                                                 onChange={(e) => handleAddSubcategoryChange(index, 'name', e.target.value)}
                                                 fullWidth
                                                 variant="outlined"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '8px',
+                                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                                    },
+                                                    '& .MuiInputLabel-root': {
+                                                        color: '#000000',
+                                                        '&.Mui-focused': { color: '#6c63ff' }
+                                                    }
+                                                }}
                                             />
                                         </Grid>
                                         <Grid item xs={2}>
-                                            <IconButton onClick={() => handleRemoveNewSubcategory(index)} color="error">
+                                            <IconButton
+                                                onClick={() => handleRemoveNewSubcategory(index)}
+                                                sx={{
+                                                    color: '#ff5e62',
+                                                    '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' }
+                                                }}
+                                            >
                                                 <Remove />
                                             </IconButton>
                                         </Grid>
                                     </Grid>
                                 ))}
                                 <Grid item xs={12}>
-                                    <Button startIcon={<Add />} onClick={handleAddNewSubcategory} sx={{ mt: 1 }}>
+                                    <Button
+                                        startIcon={<Add />}
+                                        onClick={handleAddNewSubcategory}
+                                        sx={{
+                                            mt: 1,
+                                            bgcolor: '#4ecdc4',
+                                            color: '#fff',
+                                            borderRadius: '8px',
+                                            px: 3,
+                                            py: 1,
+                                            fontWeight: 500,
+                                            textTransform: 'none',
+                                            '&:hover': {
+                                                bgcolor: '#45b7aa',
+                                                boxShadow: '0 2px 8px rgba(78, 205, 196, 0.3)'
+                                            }
+                                        }}
+                                    >
                                         Add Subcategory
                                     </Button>
                                 </Grid>
                             </Grid>
-                            {error && <Typography color="error" sx={{ mt: 2 }}>{error}</Typography>}
+                            {error && <Typography color="#ff5e62" sx={{ mt: 2, fontWeight: 500 }}>{error}</Typography>}
                         </Box>
                     </DialogContent>
-                    <DialogActions sx={{ p: 2 }}>
-                        <Button onClick={() => setOpenAddSubcategoryDialog(false)} variant="outlined">Cancel</Button>
+                    <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                        <Button
+                            onClick={() => setOpenAddSubcategoryDialog(false)}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
+                            Cancel
+                        </Button>
                         <Button
                             variant="contained"
                             onClick={handleAddSubcategoriesToExisting}
                             disabled={loading}
-                            sx={{ bgcolor: '#3b82f6', '&:hover': { bgcolor: '#2563eb' } }}
+                            sx={{
+                                bgcolor: '#6c63ff',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#5a52d5',
+                                    boxShadow: '0 2px 8px rgba(108, 99, 255, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
-                            {loading ? <CircularProgress size={24} /> : 'Add Subcategories'}
+                            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Add Subcategories'}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
-                <Dialog open={openImagePreviewDialog} onClose={() => setOpenImagePreviewDialog(false)} maxWidth="md">
-                    <DialogTitle>Image Preview</DialogTitle>
-                    <DialogContent>
+                <Dialog
+                    open={openImagePreviewDialog}
+                    onClose={() => setOpenImagePreviewDialog(false)}
+                    maxWidth="md"
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
+                >
+                    <DialogTitle sx={{
+                        color: '#000000',
+                        fontWeight: 600,
+                        borderBottom: '1px solid #e3e8ee'
+                    }}>
+                        Image Preview
+                    </DialogTitle>
+                    <DialogContent sx={{ bgcolor: '#fff' }}>
                         {previewImage && (
                             <img
                                 src={previewImage}
                                 alt="Preview"
-                                style={{ maxWidth: '100%', maxHeight: '70vh', display: 'block', margin: 'auto' }}
+                                style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '70vh',
+                                    display: 'block',
+                                    margin: 'auto',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 2px 8px rgba(39, 68, 114, 0.08)'
+                                }}
                             />
                         )}
                     </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setOpenImagePreviewDialog(false)} variant="contained">
+                    <DialogActions sx={{ bgcolor: '#fff' }}>
+                        <Button
+                            onClick={() => setOpenImagePreviewDialog(false)}
+                            variant="contained"
+                            sx={{
+                                bgcolor: '#6c63ff',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#5a52d5',
+                                    boxShadow: '0 2px 8px rgba(108, 99, 255, 0.3)'
+                                }
+                            }}
+                        >
                             Close
                         </Button>
                     </DialogActions>
@@ -802,41 +1376,149 @@ const ProductManagement = () => {
                     component={Paper}
                     sx={{
                         mt: 4,
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
                         borderRadius: '12px',
+                        boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
                         maxHeight: '600px',
                         overflowY: 'auto',
+                        bgcolor: '#fff',
                         '& .MuiTableHead-root': {
                             position: 'sticky',
                             top: 0,
                             zIndex: 1,
-                            backgroundColor: '#3b82f6',
+                            backgroundColor: '#4ecdc4',
                         },
                     }}
                 >
                     <Table stickyHeader>
                         <TableHead>
                             <TableRow>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Image</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Category</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Brand</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Subcategories</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Sizes & Quantities</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Unit Purchase Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Unit Selling Price</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Purchase Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0', backgroundColor: '#3b82f6' }}>Actions</TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Product ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Image
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Name
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Category
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Brand
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Subcategories
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Sizes & Quantities
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Unit Purchase Price
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Unit Selling Price
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Purchase Date
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Actions
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredProducts.slice(0, 25).map(product => {
+                            {filteredProducts.slice(0, 25).map((product, idx) => {
                                 const categoryName = categories.find(c => c.id === product.categoryId)?.categoryName || '';
                                 return (
-                                    <TableRow key={product.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
-                                        <TableCell>{product.productId || 'N/A'}</TableCell>
-                                        <TableCell>
+                                    <TableRow
+                                        key={product.id}
+                                        sx={{
+                                            bgcolor: idx % 2 === 0 ? '#fff' : '#f4f8fb',
+                                            '&:hover': { bgcolor: 'rgba(108, 99, 255, 0.05)' }
+                                        }}
+                                    >
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.productId || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ py: 2, px: 3 }}>
                                             {product.image ? (
                                                 <Box
                                                     sx={{
@@ -844,22 +1526,34 @@ const ProductManagement = () => {
                                                         display: 'inline-block',
                                                         maxWidth: '100px',
                                                         maxHeight: '100px',
-                                                        overflow: 'hidden'
+                                                        overflow: 'hidden',
+                                                        borderRadius: '6px',
+                                                        boxShadow: '0 2px 8px rgba(39, 68, 114, 0.08)',
+                                                        transition: 'transform 0.2s ease-in-out',
+                                                        '&:hover': { transform: 'scale(1.05)' }
                                                     }}
                                                     onClick={() => handleImagePreview(`data:image/jpeg;base64,${product.image}`)}
                                                 >
                                                     <img
                                                         src={`data:image/jpeg;base64,${product.image}`}
                                                         alt="Product"
-                                                        style={{ width: '100%', height: 'auto', display: 'block' }}
+                                                        style={{ width: '100%', height: 'auto', display: 'block', borderRadius: '6px' }}
                                                     />
                                                 </Box>
-                                            ) : 'N/A'}
+                                            ) : (
+                                                <Typography variant="body2" color="#000000">N/A</Typography>
+                                            )}
                                         </TableCell>
-                                        <TableCell>{product.productName || 'N/A'}</TableCell>
-                                        <TableCell>{categoryName}</TableCell>
-                                        <TableCell>{product.brandName || 'N/A'}</TableCell>
-                                        <TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.productName || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {categoryName}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.brandName || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                             {product.subcategories && Object.keys(product.subcategories).length > 0 ? (
                                                 Object.entries(product.subcategories)
                                                     .filter(([_, value]) => value && value.trim() !== '')
@@ -867,21 +1561,41 @@ const ProductManagement = () => {
                                                         <div key={key}>{`${key}: ${value}`}</div>
                                                     ))
                                             ) : (
-                                                'N/A'
+                                                <Typography variant="body2" color="#000000">N/A</Typography>
                                             )}
-                                            {product.subcategories && Object.entries(product.subcategories).filter(([_, value]) => value && value.trim() !== '').length === 0 && 'N/A'}
+                                            {product.subcategories && Object.entries(product.subcategories).filter(([_, value]) => value && value.trim() !== '').length === 0 && (
+                                                <Typography variant="body2" color="#000000">N/A</Typography>
+                                            )}
                                         </TableCell>
-                                        <TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                             {renderSizesQuantities(product.hasSizes, product.sizeQuantities, product.quantity)}
                                         </TableCell>
-                                        <TableCell>{product.purchasePrice || '0.00'}</TableCell>
-                                        <TableCell>{product.sellingPrice || '0.00'}</TableCell>
-                                        <TableCell>{product.purchaseDate || 'N/A'}</TableCell>
-                                        <TableCell>
-                                            <IconButton onClick={() => handleEdit(product)} sx={{ color: '#3b82f6' }}>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.purchasePrice || '0.00'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.sellingPrice || '0.00'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {product.purchaseDate || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ py: 2, px: 3 }}>
+                                            <IconButton
+                                                onClick={() => handleEdit(product)}
+                                                sx={{
+                                                    color: '#4ecdc4',
+                                                    '&:hover': { bgcolor: 'rgba(78, 205, 196, 0.1)' }
+                                                }}
+                                            >
                                                 <Edit />
                                             </IconButton>
-                                            <IconButton onClick={() => handleDelete(product.id)} sx={{ color: '#ef4444' }}>
+                                            <IconButton
+                                                onClick={() => handleDelete(product.id)}
+                                                sx={{
+                                                    color: '#ff5e62',
+                                                    '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' }
+                                                }}
+                                            >
                                                 <Delete />
                                             </IconButton>
                                         </TableCell>
@@ -891,7 +1605,7 @@ const ProductManagement = () => {
                             {filteredProducts.length > 25 && (
                                 <TableRow>
                                     <TableCell colSpan={11} align="center">
-                                        <Typography variant="caption" color="textSecondary">
+                                        <Typography variant="caption" color="#000000">
                                             Scroll to view more products...
                                         </Typography>
                                     </TableCell>
@@ -900,7 +1614,7 @@ const ProductManagement = () => {
                             {filteredProducts.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={11} align="center">
-                                        <Typography variant="body2" color="textSecondary">
+                                        <Typography variant="body2" color="#000000" sx={{ py: 4 }}>
                                             No products available for the selected filter.
                                         </Typography>
                                     </TableCell>
@@ -912,125 +1626,8 @@ const ProductManagement = () => {
             </Box>
             <style>
                 {`
-                    .page-container {
-                        min-height: 100vh;
-                        background-color: #f5f7fa;
+                    body {
                         font-family: 'Roboto', sans-serif;
-                    }
-
-                    .report-header {
-                        text-align: center;
-                        margin-bottom: 2rem;
-                        padding: 1.5rem;
-                        background-color: #ffffff;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                    }
-
-                    .report-title {
-                        color: #1a3c34;
-                        font-weight: 600;
-                        margin-bottom: 0.5rem;
-                    }
-
-                    .report-date {
-                        color: #666;
-                        font-style: italic;
-                    }
-
-                    .filter-section {
-                        display: flex;
-                        justify-content: center;
-                        margin-bottom: 2rem;
-                    }
-
-                    .filter-input {
-                        background-color: #fff;
-                        border-radius: 4px;
-                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-                    }
-
-                    .filter-input .MuiInputLabel-root {
-                        color: #333;
-                        font-weight: 500;
-                    }
-
-                    .error-message {
-                        text-align: center;
-                        margin-bottom: 1rem;
-                        font-weight: 500;
-                    }
-
-                    .report-tabs {
-                        background-color: #ffffff;
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                        margin-bottom: 2rem;
-                    }
-
-                    .tab-item {
-                        text-transform: none;
-                        font-weight: 500;
-                        color: #666;
-                        padding: 12px 24px;
-                    }
-
-                    .tab-item.Mui-selected {
-                        color: #1976d2;
-                        font-weight: 600;
-                    }
-
-                    .table-wrapper {
-                        max-width: 1200px;
-                        margin: 0 auto;
-                    }
-
-                    .table-container {
-                        border-radius: 8px;
-                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                        margin-bottom: 2rem;
-                    }
-
-                    .table-row-even {
-                        background-color: #ffffff;
-                    }
-
-                    .table-row-odd {
-                        background-color: #f9fafb;
-                    }
-
-                    .MuiTableCell-root {
-                        padding: 12px 16px;
-                        border-bottom: 1px solid #e0e0e0;
-                        color: #333;
-                    }
-
-                    .section-title {
-                        color: #1a3c34;
-                        font-weight: 500;
-                        margin-bottom: 1rem;
-                        border-left: 4px solid #1976d2;
-                        padding-left: 1rem;
-                    }
-
-                    .no-data {
-                        color: #666;
-                        font-style: italic;
-                        padding: 2rem;
-                    }
-
-                    .MuiTableHead-root {
-                        position: sticky;
-                        top: 0;
-                        z-index: 1;
-                        background-color: #3b82f6;
-                    }
-
-                    .MuiTableCell-head {
-                        color: white;
-                        font-weight: bold;
-                        border-bottom: 2px solid #1565c0;
-                        background-color: #3b82f6;
                     }
 
                     @media print {
@@ -1038,7 +1635,7 @@ const ProductManagement = () => {
                             margin: 0;
                             padding: 20px;
                         }
-                        .filter-section, .report-tabs, .MuiTabs-root {
+                        .filter-section, .MuiTabs-root {
                             display: none;
                         }
                         .table-container {
@@ -1052,9 +1649,6 @@ const ProductManagement = () => {
                         .table tr {
                             page-break-inside: avoid;
                             page-break-after: auto;
-                        }
-                        .summary {
-                            page-break-inside: avoid;
                         }
                     }
                 `}

@@ -1,87 +1,141 @@
-// src/pages/OwnerProfile.js
 import React, { useState, useEffect } from 'react';
-import { Container, TextField, Button, Typography, Box, Avatar, IconButton } from '@mui/material';
+import { Container, TextField, Button, Typography, Box } from '@mui/material';
 import axios from 'axios';
 import OwnerNavbar from '../components/OwnerNavbar';
-import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import { useNavigate } from 'react-router-dom';
 
 function OwnerProfile() {
-    const [owner, setOwner] = useState({
+    const [user, setUser] = useState({
+        id: null,
         firstName: '',
         lastName: '',
         address: '',
         phoneNumber: '',
         email: '',
         password: '',
-        image: ''
+        confirmPassword: '',
+        jobTitle: '',
+        role: '',
+        salary: null,
+        hireDate: ''
     });
     const [errors, setErrors] = useState({});
-    const [imagePreview, setImagePreview] = useState(null);
-    const ownerId = 1; // Hardcoded for demo; replace with dynamic ID (e.g., from login state)
+    const navigate = useNavigate();
 
     useEffect(() => {
-        fetchOwnerProfile();
+        fetchUserProfile();
     }, []);
 
-    const fetchOwnerProfile = async () => {
+    const fetchUserProfile = async () => {
         try {
-            const response = await axios.get(`http://localhost:8080/api/owners/${ownerId}`, {
+            const email = localStorage.getItem('userEmail');
+            if (!email) {
+                setErrors({ fetch: 'User not logged in. Please log in again.' });
+                navigate('/login');
+                return;
+            }
+
+            console.log('Fetching profile for email:', email);
+            const response = await axios.get('http://localhost:8080/api/employee/self', {
+                params: { email },
                 headers: { 'Content-Type': 'application/json' }
             });
-            setOwner(response.data);
-            setImagePreview(response.data.image || null);
+
+            console.log('API Response:', response.data);
+            const userData = response.data;
+            if (!userData || typeof userData !== 'object') {
+                throw new Error('Invalid response data');
+            }
+
+            setUser({
+                id: userData.id,
+                firstName: userData.first_name || '',
+                lastName: userData.last_name || '',
+                address: userData.address || '',
+                phoneNumber: userData.phoneNumber || '',
+                email: userData.email || '',
+                password: '',
+                confirmPassword: '',
+                jobTitle: userData.job_title || '',
+                role: userData.role || '',
+                salary: userData.salary || null,
+                hireDate: userData.hire_date ? (typeof userData.hire_date === 'string' ? userData.hire_date : userData.hire_date.toString()) : ''
+            });
             setErrors({});
         } catch (error) {
-            console.error('Fetch owner failed:', error);
-            setErrors({ fetch: 'Failed to load owner profile. Check console.' });
+            console.error('Fetch user failed:', error.response?.data || error.message);
+            const errorMessage = error.response?.data?.error || error.message;
+            if (errorMessage.includes('User not found')) {
+                setErrors({ fetch: 'User not found. Please log in with a valid account.' });
+                navigate('/login');
+            } else if (error.message.includes('Network Error')) {
+                setErrors({ fetch: 'Cannot connect to the server. Please ensure the backend is running.' });
+            } else {
+                setErrors({ fetch: 'Failed to load profile: ' + errorMessage });
+            }
         }
     };
 
     const validate = () => {
         let tempErrors = {};
-        tempErrors.firstName = owner.firstName ? '' : 'First Name is required';
-        tempErrors.lastName = owner.lastName ? '' : 'Last Name is required';
-        tempErrors.address = owner.address ? '' : 'Address is required';
-        tempErrors.phoneNumber = owner.phoneNumber ? (/^\d{10}$/.test(owner.phoneNumber) ? '' : 'Invalid phone number (10 digits)') : 'Phone Number is required';
-        tempErrors.email = owner.email ? (/\S+@\S+\.\S+/.test(owner.email) ? '' : 'Invalid email') : 'Email is required';
-        tempErrors.password = owner.password ? (owner.password.length >= 6 ? '' : 'Password must be at least 6 characters') : 'Password is required';
+        tempErrors.firstName = user.firstName ? '' : 'First Name is required';
+        tempErrors.lastName = user.lastName ? '' : 'Last Name is required';
+        tempErrors.address = user.address ? '' : 'Address is required';
+        tempErrors.phoneNumber = user.phoneNumber
+            ? (/^\d{10}$/.test(user.phoneNumber) ? '' : 'Invalid phone number (10 digits)')
+            : 'Phone Number is required';
+        tempErrors.email = user.email
+            ? (/\S+@\S+\.\S+/.test(user.email) ? '' : 'Invalid email')
+            : 'Email is required';
+        if (user.password || user.confirmPassword) {
+            tempErrors.password = user.password
+                ? (user.password.length >= 6 ? '' : 'Password must be at least 6 characters')
+                : 'Password is required for update';
+            tempErrors.confirmPassword = user.confirmPassword
+                ? (user.password === user.confirmPassword ? '' : 'Passwords do not match')
+                : 'Confirm Password is required';
+        }
         setErrors(tempErrors);
         return Object.values(tempErrors).every(x => x === '');
     };
 
     const handleChange = (e) => {
-        setOwner({ ...owner, [e.target.name]: e.target.value });
-    };
-
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setOwner({ ...owner, image: reader.result }); // Base64 string
-                setImagePreview(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
+        setUser({ ...user, [e.target.name]: e.target.value });
     };
 
     const handleSubmit = async () => {
         if (validate()) {
             try {
-                console.log('Updating owner data:', owner);
-                const response = await axios.put(`http://localhost:8080/api/owners/${ownerId}`, owner, {
+                const payload = {
+                    id: user.id,
+                    first_name: user.firstName,
+                    last_name: user.lastName,
+                    address: user.address,
+                    phoneNumber: user.phoneNumber,
+                    email: user.email,
+                    password: user.password || undefined,
+                    job_title: user.jobTitle,
+                    role: user.role,
+                    salary: user.salary
+                    // Exclude hire_date to avoid type mismatch
+                };
+
+                console.log('Submitting payload:', payload);
+                const response = await axios.put(`http://localhost:8080/api/employees/${user.id}`, payload, {
                     headers: { 'Content-Type': 'application/json' }
                 });
-                console.log('Update successful:', response.data);
+
+                console.log('Update response:', response.data);
+                if (user.email !== localStorage.getItem('userEmail')) {
+                    localStorage.setItem('userEmail', user.email);
+                }
+
                 alert('Profile updated successfully');
-                fetchOwnerProfile(); // Refresh data
+                fetchUserProfile();
             } catch (error) {
-                console.error('Update failed:', {
-                    message: error.message,
-                    status: error.response?.status,
-                    data: error.response?.data
-                });
-                setErrors({ form: error.response?.data || 'Update failed. Check console.' });
+                console.error('Update failed:', error.response?.data || error.message);
+                const errorMessage = error.response?.data?.error || error.message;
+                setErrors({ form: 'Update failed: ' + errorMessage });
             }
         }
     };
@@ -91,30 +145,10 @@ function OwnerProfile() {
             <OwnerNavbar />
             <Container maxWidth="sm" sx={{ mt: 4 }}>
                 <Typography variant="h4" align="center" gutterBottom>
-                    Owner Profile
+                    My Profile
                 </Typography>
                 {errors.fetch && <Typography color="error" align="center">{errors.fetch}</Typography>}
                 {errors.form && <Typography color="error" align="center">{errors.form}</Typography>}
-
-                <Box display="flex" justifyContent="center" mb={2}>
-                    <Avatar
-                        src={imagePreview}
-                        sx={{ width: 100, height: 100 }}
-                        alt="Owner Image"
-                    />
-                    <input
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        id="image-upload"
-                        type="file"
-                        onChange={handleImageChange}
-                    />
-                    <label htmlFor="image-upload">
-                        <IconButton color="primary" component="span">
-                            <PhotoCamera />
-                        </IconButton>
-                    </label>
-                </Box>
 
                 <TextField
                     name="firstName"
@@ -122,7 +156,7 @@ function OwnerProfile() {
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.firstName}
+                    value={user.firstName}
                     onChange={handleChange}
                     error={!!errors.firstName}
                     helperText={errors.firstName}
@@ -133,7 +167,7 @@ function OwnerProfile() {
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.lastName}
+                    value={user.lastName}
                     onChange={handleChange}
                     error={!!errors.lastName}
                     helperText={errors.lastName}
@@ -144,7 +178,7 @@ function OwnerProfile() {
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.address}
+                    value={user.address}
                     onChange={handleChange}
                     error={!!errors.address}
                     helperText={errors.address}
@@ -155,7 +189,7 @@ function OwnerProfile() {
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.phoneNumber}
+                    value={user.phoneNumber}
                     onChange={handleChange}
                     error={!!errors.phoneNumber}
                     helperText={errors.phoneNumber}
@@ -166,22 +200,74 @@ function OwnerProfile() {
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.email}
+                    value={user.email}
                     onChange={handleChange}
                     error={!!errors.email}
                     helperText={errors.email}
                 />
                 <TextField
+                    name="jobTitle"
+                    label="Job Title"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    value={user.jobTitle}
+                    onChange={handleChange}
+                    disabled
+                />
+                <TextField
+                    name="role"
+                    label="Role"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    value={user.role}
+                    onChange={handleChange}
+                    disabled
+                />
+                <TextField
+                    name="salary"
+                    label="Salary"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    value={user.salary || ''}
+                    onChange={handleChange}
+                    disabled
+                />
+                <TextField
+                    name="hireDate"
+                    label="Hire Date"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    value={user.hireDate}
+                    onChange={handleChange}
+                    disabled
+                />
+                <TextField
                     name="password"
-                    label="Password"
+                    label="New Password (leave blank to keep unchanged)"
                     type="password"
                     variant="outlined"
                     fullWidth
                     margin="normal"
-                    value={owner.password}
+                    value={user.password}
                     onChange={handleChange}
                     error={!!errors.password}
                     helperText={errors.password}
+                />
+                <TextField
+                    name="confirmPassword"
+                    label="Confirm New Password"
+                    type="password"
+                    variant="outlined"
+                    fullWidth
+                    margin="normal"
+                    value={user.confirmPassword}
+                    onChange={handleChange}
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword}
                 />
                 <Button
                     variant="contained"

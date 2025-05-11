@@ -1,62 +1,11 @@
-/* src/pages/styles.css */
 .login-container {
+    min-height: 100vh;
     display: flex;
-    justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    justify-content: center;
+    background: linear-gradient(135deg, #fdf6f0 0%, #fce4ec 100%);
 }
-
 .login-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 400px;
-}
-
-.dashboard-container {
-    padding-top: 2rem;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-}
-
-.dashboard-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin: 0 auto;
-    max-width: 600px;
-}
-
-.registration-container {
-    padding-top: 2rem;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.registration-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    margin-bottom: 2rem;
-}
-
-.owner-profile-container {
-    padding-top: 2rem;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-}
-
-.owner-profile-box {
-    background: white;
-    padding: 2rem;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 500px;
-    margin: 0 auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    border-radius: 24px;
 }

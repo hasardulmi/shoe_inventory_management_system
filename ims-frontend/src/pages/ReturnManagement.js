@@ -105,37 +105,92 @@ const ReturnManagement = () => {
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4, bgcolor: '#f3f4f6', minHeight: '100vh' }}>
-                <Typography variant="h4" sx={{ mb: 4, color: '#1f2937', fontWeight: 'bold', textAlign: 'center' }}>
+            <Box sx={{
+                p: { xs: 2, md: 4 },
+                bgcolor: '#fff',
+                minHeight: '100vh',
+                fontFamily: 'Roboto, sans-serif'
+            }}>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        mb: 4,
+                        color: '#000000',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        letterSpacing: 0.5
+                    }}
+                >
                     Return Management
                 </Typography>
+
                 <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{
+                        width: '100%',
+                        bgcolor: '#ff5e62',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {error}
                     </Alert>
                 </Snackbar>
                 <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
-                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{
+                        width: '100%',
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
                         {success}
                     </Alert>
                 </Snackbar>
+
                 <Button
                     variant="contained"
                     startIcon={<Add />}
                     onClick={() => setOpenDialog(true)}
-                    sx={{ mb: 4, bgcolor: '#10b981', '&:hover': { bgcolor: '#059669' } }}
+                    sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        px: 3,
+                        py: 1.5,
+                        fontWeight: 500,
+                        textTransform: 'none',
+                        boxShadow: '0 2px 8px rgba(83, 209, 182, 0.2)',
+                        '&:hover': {
+                            bgcolor: '#46b69d',
+                            boxShadow: '0 4px 12px rgba(83, 209, 182, 0.3)'
+                        }
+                    }}
                 >
                     Add Return
                 </Button>
 
                 {/* Product ID and Sale ID Filters */}
-                <Box sx={{ mb: 4, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    gap: 2,
+                    mb: 4,
+                    mt: 2,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
                     <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
-                        <InputLabel>Product ID</InputLabel>
+                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                            Product ID
+                        </InputLabel>
                         <Select
                             value={selectedProductId}
                             onChange={handleProductIdFilterChange}
                             label="Product ID"
+                            sx={{
+                                borderRadius: '8px',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                            }}
                         >
                             <MenuItem value="">All Product IDs</MenuItem>
                             {uniqueProductIds.map((productId, index) => (
@@ -146,11 +201,19 @@ const ReturnManagement = () => {
                         </Select>
                     </FormControl>
                     <FormControl variant="outlined" sx={{ minWidth: '200px' }}>
-                        <InputLabel>Sale ID</InputLabel>
+                        <InputLabel sx={{ color: '#000000', '&.Mui-focused': { color: '#6c63ff' } }}>
+                            Sale ID
+                        </InputLabel>
                         <Select
                             value={selectedSaleId}
                             onChange={handleSaleIdFilterChange}
                             label="Sale ID"
+                            sx={{
+                                borderRadius: '8px',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e3e8ee' },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#6c63ff' }
+                            }}
                         >
                             <MenuItem value="">All Sale IDs</MenuItem>
                             {uniqueSaleIds.map((saleId, index) => (
@@ -168,17 +231,96 @@ const ReturnManagement = () => {
                     onSuccess={handleSuccess}
                 />
 
-                <TableContainer component={Paper} sx={{ mt: 4, boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px', maxHeight: '600px', overflowY: 'auto', position: 'relative' }}>
+                <TableContainer
+                    component={Paper}
+                    sx={{
+                        mt: 4,
+                        borderRadius: '12px',
+                        boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
+                        maxHeight: '600px',
+                        overflowY: 'auto',
+                        bgcolor: '#fff',
+                        '& .MuiTableHead-root': {
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 1,
+                            backgroundColor: '#4ecdc4',
+                        },
+                    }}
+                >
                     <Table stickyHeader>
                         <TableHead>
-                            <TableRow sx={{ bgcolor: '#3b82f6', position: 'sticky', top: 0, zIndex: 1 }}>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Product Name</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sale ID</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Return Date</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Reason</TableCell>
-                                <TableCell sx={{ color: 'white', fontWeight: 'bold', borderBottom: '2px solid #1565c0' }}>Sizes & Quantities</TableCell>
+                            <TableRow>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Return ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Product ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Product Name
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Sale ID
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Return Date
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Reason
+                                </TableCell>
+                                <TableCell sx={{
+                                    color: '#fff',
+                                    fontWeight: 600,
+                                    borderBottom: '2px solid #45b7aa',
+                                    backgroundColor: '#4ecdc4',
+                                    py: 2,
+                                    px: 3
+                                }}>
+                                    Sizes & Quantities
+                                </TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -190,20 +332,36 @@ const ReturnManagement = () => {
                                 </TableRow>
                             ) : getFilteredReturns().length > 0 ? (
                                 [...getFilteredReturns()].reverse().map(returnItem => (
-                                    <TableRow key={returnItem.id} sx={{ '&:hover': { bgcolor: '#f9fafb' } }}>
-                                        <TableCell>{returnItem.id || 'N/A'}</TableCell>
-                                        <TableCell>{returnItem.productId || 'N/A'}</TableCell>
-                                        <TableCell>{returnItem.productName || 'N/A'}</TableCell>
-                                        <TableCell>{returnItem.saleId || 'N/A'}</TableCell>
-                                        <TableCell>
+                                    <TableRow
+                                        key={returnItem.id}
+                                        sx={{
+                                            bgcolor: '#fff',
+                                            '&:hover': { bgcolor: 'rgba(108, 99, 255, 0.05)' }
+                                        }}
+                                    >
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {returnItem.id || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {returnItem.productId || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {returnItem.productName || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {returnItem.saleId || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                             {returnItem.returnDate ? new Date(returnItem.returnDate).toLocaleDateString('en-US', {
                                                 year: 'numeric',
                                                 month: '2-digit',
                                                 day: '2-digit',
                                             }) : 'N/A'}
                                         </TableCell>
-                                        <TableCell>{returnItem.reason || 'N/A'}</TableCell>
-                                        <TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                            {returnItem.reason || 'N/A'}
+                                        </TableCell>
+                                        <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
                                             {returnItem.sizeQuantities
                                                 ? Object.entries(returnItem.sizeQuantities)
                                                     .map(([size, qty]) => `Size ${size}: ${qty}`)
@@ -214,8 +372,10 @@ const ReturnManagement = () => {
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={7} sx={{ textAlign: 'center', py: 2 }}>
-                                        No return records available.
+                                    <TableCell colSpan={7} align="center">
+                                        <Typography variant="body2" color="#000000" sx={{ py: 4 }}>
+                                            No return records available.
+                                        </Typography>
                                     </TableCell>
                                 </TableRow>
                             )}
@@ -225,34 +385,30 @@ const ReturnManagement = () => {
 
                 <style>
                     {`
-                        .MuiTableHead-root {
-                            position: sticky;
-                            top: 0;
-                            z-index: 1;
-                            background-color: #3b82f6;
+                        body {
+                            font-family: 'Roboto', sans-serif;
                         }
 
-                        .MuiTableCell-head {
-                            color: white;
-                            font-weight: bold;
-                            border-bottom: 2px solid #1565c0;
-                            background-color: #3b82f6;
-                        }
-
-                        .MuiTableContainer-root {
-                            position: relative;
-                            max-height: 600px;
-                            overflow-y: auto;
-                        }
-
-                        .MuiTableRow-root:hover {
-                            background-color: #f9fafb;
-                        }
-
-                        .MuiTableCell-body {
-                            padding: 12px 16px;
-                            border-bottom: 1px solid #e0e0e0;
-                            color: #333;
+                        @media print {
+                            body {
+                                margin: 0;
+                                padding: 20px;
+                            }
+                            .filter-section, .MuiTabs-root {
+                                display: none;
+                            }
+                            .table-container {
+                                box-shadow: none;
+                                max-height: none;
+                                overflow-y: visible;
+                            }
+                            .table {
+                                page-break-inside: auto;
+                            }
+                            .table tr {
+                                page-break-inside: avoid;
+                                page-break-after: auto;
+                            }
                         }
                     `}
                 </style>

@@ -129,7 +129,7 @@ function EmployeeRegistration() {
         setError('');
         setSuccess('');
 
-        if (!isUpdate || (isUpdate && formData.password)) {
+        if (!isUpdate) { // Only validate password when adding a new employee
             if (formData.password !== formData.confirmPassword) {
                 setPasswordError('Passwords do not match');
                 return;
@@ -255,89 +255,228 @@ function EmployeeRegistration() {
         return typeof date === 'string' ? date.split('T')[0] : date.toString().split('T')[0];
     };
 
-    const formatCurrency = (value) => {
-        if (value === null || value === undefined || isNaN(value)) {
-            return '0.00';
-        }
-        return Number(value).toFixed(2);
-    };
-
     return (
         <>
             <OwnerNavbar />
-            <Box sx={{ p: 4 }} className="dashboard-container">
-                <Typography variant="h4" gutterBottom>
+            <Box sx={{
+                p: { xs: 2, md: 4 },
+                bgcolor: '#fff',
+                minHeight: '100vh',
+                fontFamily: 'Roboto, sans-serif'
+            }}>
+                <Typography
+                    variant="h4"
+                    sx={{
+                        mb: 4,
+                        color: '#000000',
+                        fontWeight: 600,
+                        textAlign: 'center',
+                        letterSpacing: 0.5
+                    }}
+                >
                     Employee Management
                 </Typography>
+
+                <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
+                    <Alert onClose={() => setError('')} severity="error" sx={{
+                        width: '100%',
+                        bgcolor: '#ff5e62',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
+                        {error}
+                    </Alert>
+                </Snackbar>
+                <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
+                    <Alert onClose={() => setSuccess('')} severity="success" sx={{
+                        width: '100%',
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        '& .MuiAlert-icon': { color: '#fff' }
+                    }}>
+                        {success}
+                    </Alert>
+                </Snackbar>
 
                 <Button
                     variant="contained"
                     onClick={() => { resetForm(); setOpen(true); }}
                     disabled={loading}
-                    sx={{ mb: 2 }}
+                    sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        borderRadius: '8px',
+                        px: 3,
+                        py: 1.5,
+                        fontWeight: 500,
+                        textTransform: 'none',
+                        boxShadow: '0 2px 8px rgba(83, 209, 182, 0.2)',
+                        '&:hover': {
+                            bgcolor: '#46b69d',
+                            boxShadow: '0 4px 12px rgba(83, 209, 182, 0.3)'
+                        }
+                    }}
                 >
                     Add Employee
                 </Button>
-
-                <Snackbar open={!!error} autoHideDuration={6000} onClose={() => setError('')}>
-                    <Alert onClose={() => setError('')} severity="error" sx={{ width: '100%' }}>
-                        {error}
-                    </Alert>
-                </Snackbar>
-                <Snackbar open={!!success} autoHideDuration={6000} onClose={() => setSuccess('')}>
-                    <Alert onClose={() => setSuccess('')} severity="success" sx={{ width: '100%' }}>
-                        {success}
-                    </Alert>
-                </Snackbar>
 
                 {loading && !open ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
                         <CircularProgress />
                     </Box>
                 ) : (
-                    <TableContainer component={Paper}>
-                        <Table>
+                    <TableContainer
+                        component={Paper}
+                        sx={{
+                            mt: 4,
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)',
+                            maxHeight: '600px',
+                            overflowY: 'auto',
+                            bgcolor: '#fff',
+                            '& .MuiTableHead-root': {
+                                position: 'sticky',
+                                top: 0,
+                                zIndex: 1,
+                                backgroundColor: '#4ecdc4',
+                            },
+                        }}
+                    >
+                        <Table stickyHeader>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>Email</TableCell>
-                                    <TableCell>Address</TableCell>
-                                    <TableCell>Phone Number</TableCell>
-                                    <TableCell>Job Title</TableCell>
-                                    <TableCell>Salary</TableCell>
-                                    <TableCell>Hire Date</TableCell>
-                                    <TableCell>Actions</TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Name
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Email
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Address
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Phone Number
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Job Title
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Salary
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Hire Date
+                                    </TableCell>
+                                    <TableCell sx={{
+                                        color: '#fff',
+                                        fontWeight: 600,
+                                        borderBottom: '2px solid #45b7aa',
+                                        backgroundColor: '#4ecdc4',
+                                        py: 2,
+                                        px: 3
+                                    }}>
+                                        Actions
+                                    </TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 {employees.length === 0 ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center">
-                                            No employees found
+                                            <Typography variant="body2" color="#000000" sx={{ py: 4 }}>
+                                                No employees found
+                                            </Typography>
                                         </TableCell>
                                     </TableRow>
                                 ) : (
                                     employees.map((emp) => (
-                                        <TableRow key={emp.id}>
-                                            <TableCell>{`${emp.firstName} ${emp.lastName}`}</TableCell>
-                                            <TableCell>{emp.email}</TableCell>
-                                            <TableCell>{emp.address}</TableCell>
-                                            <TableCell>{emp.phoneNumber}</TableCell>
-                                            <TableCell>{emp.jobTitle}</TableCell>
-                                            <TableCell>{formatCurrency(emp.salary)}</TableCell>
-                                            <TableCell>{formatDate(emp.hireDate)}</TableCell>
-                                            <TableCell>
+                                        <TableRow
+                                            key={emp.id}
+                                            sx={{
+                                                bgcolor: '#fff',
+                                                '&:hover': { bgcolor: 'rgba(108, 99, 255, 0.05)' }
+                                            }}
+                                        >
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {`${emp.firstName} ${emp.lastName}`}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {emp.email}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {emp.address}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {emp.phoneNumber}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {emp.jobTitle}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {formatCurrency(emp.salary)}
+                                            </TableCell>
+                                            <TableCell sx={{ color: '#000000', py: 2, px: 3 }}>
+                                                {formatDate(emp.hireDate)}
+                                            </TableCell>
+                                            <TableCell sx={{ py: 2, px: 3 }}>
                                                 <Button
                                                     onClick={() => handleUpdate(emp)}
-                                                    sx={{ mr: 1 }}
-                                                    disabled={loading}
+                                                    sx={{ mr: 1, color: '#4ecdc4', '&:hover': { bgcolor: 'rgba(78, 205, 196, 0.1)' } }}
                                                 >
                                                     Update
                                                 </Button>
                                                 <Button
                                                     onClick={() => handleOpenDeleteConfirm(emp.id)}
                                                     color="error"
-                                                    disabled={loading}
+                                                    sx={{ color: '#ff5e62', '&:hover': { bgcolor: 'rgba(255, 94, 98, 0.1)' } }}
                                                 >
                                                     Delete
                                                 </Button>
@@ -350,9 +489,26 @@ function EmployeeRegistration() {
                     </TableContainer>
                 )}
 
-                <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
-                    <DialogTitle>{isUpdate ? 'Update Employee' : 'Add Employee'}</DialogTitle>
-                    <DialogContent>
+                <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth
+                        sx={{
+                            '& .MuiDialog-paper': {
+                                borderRadius: '12px',
+                                boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                            }
+                        }}
+                >
+                    <DialogTitle sx={{
+                        bgcolor: '#53d1b6',
+                        color: '#fff',
+                        py: 2,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        borderTopLeftRadius: '12px',
+                        borderTopRightRadius: '12px'
+                    }}>
+                        {isUpdate ? 'Update Employee' : 'Add Employee'}
+                    </DialogTitle>
+                    <DialogContent sx={{ pt: 3, bgcolor: '#fff' }}>
                         <form onSubmit={handleSubmit}>
                             <TextField
                                 label="First Name"
@@ -362,6 +518,18 @@ function EmployeeRegistration() {
                                 onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
                             <TextField
                                 label="Last Name"
@@ -371,6 +539,18 @@ function EmployeeRegistration() {
                                 onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
                             <TextField
                                 label="Address"
@@ -380,6 +560,18 @@ function EmployeeRegistration() {
                                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
                             <TextField
                                 label="Phone Number"
@@ -389,6 +581,18 @@ function EmployeeRegistration() {
                                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                                 required
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
                             <TextField
                                 label="Email"
@@ -404,8 +608,33 @@ function EmployeeRegistration() {
                                 InputLabelProps={{ shrink: true }}
                                 error={!!emailError}
                                 helperText={emailError}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
-                            <FormControl fullWidth margin="normal" required>
+                            <FormControl fullWidth margin="normal" required
+                                         sx={{
+                                             '& .MuiOutlinedInput-root': {
+                                                 borderRadius: '8px',
+                                                 '& fieldset': { borderColor: '#e3e8ee' },
+                                                 '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                 '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                             },
+                                             '& .MuiInputLabel-root': {
+                                                 color: '#000000',
+                                                 '&.Mui-focused': { color: '#6c63ff' }
+                                             }
+                                         }}
+                            >
                                 <InputLabel shrink>Job Title</InputLabel>
                                 <Select
                                     value={formData.jobTitle}
@@ -425,6 +654,18 @@ function EmployeeRegistration() {
                                 required
                                 type="number"
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
                             <TextField
                                 label="Hire Date"
@@ -435,33 +676,88 @@ function EmployeeRegistration() {
                                 required
                                 type="date"
                                 InputLabelProps={{ shrink: true }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: '8px',
+                                        '& fieldset': { borderColor: '#e3e8ee' },
+                                        '&:hover fieldset': { borderColor: '#6c63ff' },
+                                        '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                    },
+                                    '& .MuiInputLabel-root': {
+                                        color: '#000000',
+                                        '&.Mui-focused': { color: '#6c63ff' }
+                                    }
+                                }}
                             />
-                            <TextField
-                                label="Password"
-                                fullWidth
-                                margin="normal"
-                                value={formData.password}
-                                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                                type="password"
-                                required={!isUpdate}
-                                InputLabelProps={{ shrink: true }}
-                            />
-                            <TextField
-                                label="Confirm Password"
-                                fullWidth
-                                margin="normal"
-                                value={formData.confirmPassword}
-                                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                                type="password"
-                                required={!isUpdate}
-                                InputLabelProps={{ shrink: true }}
-                                error={!!passwordError}
-                                helperText={passwordError}
-                            />
+                            {!isUpdate && ( // Show password fields only when adding a new employee
+                                <>
+                                    <TextField
+                                        label="Password"
+                                        fullWidth
+                                        margin="normal"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                        type="password"
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
+                                    />
+                                    <TextField
+                                        label="Confirm Password"
+                                        fullWidth
+                                        margin="normal"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                        type="password"
+                                        required
+                                        InputLabelProps={{ shrink: true }}
+                                        error={!!passwordError}
+                                        helperText={passwordError}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: '8px',
+                                                '& fieldset': { borderColor: '#e3e8ee' },
+                                                '&:hover fieldset': { borderColor: '#6c63ff' },
+                                                '&.Mui-focused fieldset': { borderColor: '#6c63ff' }
+                                            },
+                                            '& .MuiInputLabel-root': {
+                                                color: '#000000',
+                                                '&.Mui-focused': { color: '#6c63ff' }
+                                            }
+                                        }}
+                                    />
+                                </>
+                            )}
                         </form>
                     </DialogContent>
-                    <DialogActions>
-                        <Button onClick={() => setOpen(false)} disabled={loading}>
+                    <DialogActions sx={{ p: 2, bgcolor: '#fff', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                        <Button
+                            onClick={() => setOpen(false)}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button
@@ -469,6 +765,23 @@ function EmployeeRegistration() {
                             variant="contained"
                             onClick={handleSubmit}
                             disabled={loading}
+                            sx={{
+                                bgcolor: '#53d1b6',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#46b69d',
+                                    boxShadow: '0 2px 8px rgba(83, 209, 182, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
                             {isUpdate ? 'Update' : 'Add'}
                         </Button>
@@ -478,27 +791,99 @@ function EmployeeRegistration() {
                 <Dialog
                     open={!!deleteConfirm}
                     onClose={handleCloseDeleteConfirm}
+                    sx={{
+                        '& .MuiDialog-paper': {
+                            borderRadius: '12px',
+                            boxShadow: '0 4px 24px 0 rgba(39, 68, 114, 0.08)'
+                        }
+                    }}
                 >
-                    <DialogTitle>Confirm Delete</DialogTitle>
-                    <DialogContent>
+                    <DialogTitle sx={{
+                        color: '#000000',
+                        fontWeight: 600,
+                        borderBottom: '1px solid #e3e8ee'
+                    }}>
+                        Confirm Delete
+                    </DialogTitle>
+                    <DialogContent sx={{ bgcolor: '#fff' }}>
                         <Typography>
                             Are you sure you want to delete this employee?
                         </Typography>
                     </DialogContent>
-                    <DialogActions>
-                        <Button onClick={handleCloseDeleteConfirm} disabled={loading}>
+                    <DialogActions sx={{ bgcolor: '#fff' }}>
+                        <Button
+                            onClick={handleCloseDeleteConfirm}
+                            variant="outlined"
+                            sx={{
+                                borderColor: '#e3e8ee',
+                                color: '#000000',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    borderColor: '#6c63ff',
+                                    bgcolor: 'rgba(108, 99, 255, 0.05)'
+                                }
+                            }}
+                        >
                             Cancel
                         </Button>
                         <Button
                             onClick={() => handleDelete(deleteConfirm)}
                             color="error"
-                            disabled={loading}
+                            sx={{
+                                bgcolor: '#ff5e62',
+                                color: '#fff',
+                                borderRadius: '8px',
+                                px: 3,
+                                py: 1,
+                                fontWeight: 500,
+                                textTransform: 'none',
+                                '&:hover': {
+                                    bgcolor: '#e04e51',
+                                    boxShadow: '0 2px 8px rgba(255, 94, 98, 0.3)'
+                                },
+                                '&:disabled': {
+                                    bgcolor: '#e3e8ee',
+                                    color: '#6b7280'
+                                }
+                            }}
                         >
                             Delete
                         </Button>
                     </DialogActions>
                 </Dialog>
             </Box>
+            <style>
+                {`
+                    body {
+                        font-family: 'Roboto', sans-serif;
+                    }
+
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 20px;
+                        }
+                        .filter-section, .MuiTabs-root {
+                            display: none;
+                        }
+                        .table-container {
+                            box-shadow: none;
+                            max-height: none;
+                            overflow-y: visible;
+                        }
+                        .table {
+                            page-break-inside: auto;
+                        }
+                        .table tr {
+                            page-break-inside: avoid;
+                            page-break-after: auto;
+                        }
+                    }
+                `}
+            </style>
         </>
     );
 }
